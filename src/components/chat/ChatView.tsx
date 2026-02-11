@@ -6,7 +6,7 @@ import { ComposeBar } from './ComposeBar';
 import { StreamingIndicator } from './StreamingIndicator';
 import { useApp } from '../../context/AppContext';
 import { useSession } from '../../hooks/useSession';
-import { useGateway } from '../../hooks/useGateway';
+import { useClawChannel } from '../../hooks/useClawChannel';
 import { useAdaptiveEngine } from '../../hooks/useAdaptiveEngine';
 import { cn } from '../../lib/cn';
 import type { A2UIMessage } from '../../lib/types';
@@ -32,26 +32,15 @@ export function ChatView() {
     ? state.connections.find(c => c.id === session.agent_connection_id)
     : state.connections.find(c => c.is_default) || state.connections[0];
 
-  const handleA2UIMessage = useCallback((msg: A2UIMessage) => {
-    if (msg.type === 'updateComponents' || msg.type === 'updateDataModel') {
-      updateLastAgentA2UI({
-        surfaceId: msg.surfaceId,
-        components: Array.isArray(msg.payload) ? msg.payload : [],
-        dataModel: {},
-      });
-    }
-  }, [updateLastAgentA2UI]);
-
-  const handleTextMessage = useCallback((text: string) => {
+  const handleMessage = useCallback((text: string) => {
     if (sessionId) appendToLastAgentMessage(text, sessionId);
     setStreaming(false);
   }, [appendToLastAgentMessage, sessionId]);
 
-  const { status, connect, sendMessage, sendAction } = useGateway({
-    url: connection?.gateway_url || null,
-    authToken: connection?.auth_token,
-    onA2UIMessage: handleA2UIMessage,
-    onTextMessage: handleTextMessage,
+  const { status, connect, sendMessage, isConnected } = useClawChannel({
+    url: import.meta.env.VITE_CLAW_WS_URL,
+    authToken: import.meta.env.VITE_CLAW_AUTH_TOKEN,
+    onMessage: handleMessage,
   });
 
   useEffect(() => {
@@ -86,12 +75,12 @@ export function ChatView() {
     trackEvent('command_sent', { command: text }, sessionId);
     setStreaming(true);
 
-    if (status === 'connected') {
-      sendMessage(text, sessionId);
+    if (isConnected) {
+      sendMessage(text);
     } else {
       setTimeout(() => {
         setStreaming(false);
-        addMessage(sessionId, 'agent', `I received your message: "${text}"\n\nNote: This is a simulated response. Connect to an OpenClaw gateway to interact with a live agent. You can configure your gateway connection in Agent Config.`);
+        addMessage(sessionId, 'agent', `I received your message: "${text}"\n\nNote: This is a simulated response. Connect to OpenClaw via the channel plugin to interact with a live agent.`);
       }, 1200);
     }
 
