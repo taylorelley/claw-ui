@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Server, Plus, Trash2, Check, X, RefreshCw, Star, StarOff, Wifi, WifiOff } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { supabase } from '../lib/supabase';
@@ -11,6 +11,13 @@ export function AgentsPage() {
   const [form, setForm] = useState({ name: '', gateway_url: 'ws://127.0.0.1:18789', auth_token: '' });
   const [testing, setTesting] = useState<string | null>(null);
   const testWsRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    return () => {
+      testWsRef.current?.close();
+      testWsRef.current = null;
+    };
+  }, []);
 
   const handleAdd = async () => {
     if (!form.gateway_url.trim()) return;
@@ -40,10 +47,16 @@ export function AgentsPage() {
   };
 
   const handleSetDefault = async (id: string) => {
-    await Promise.all([
+    const [clearRes, setRes] = await Promise.all([
       supabase.from('agent_connections').update({ is_default: false }).neq('id', id),
       supabase.from('agent_connections').update({ is_default: true }).eq('id', id),
     ]);
+    if (clearRes.error || setRes.error) {
+      console.error('Failed to set default connection:', clearRes.error || setRes.error);
+      const { data } = await supabase.from('agent_connections').select('*').order('created_at', { ascending: true });
+      if (data) dispatch({ type: 'SET_CONNECTIONS', payload: data as AgentConnection[] });
+      return;
+    }
     dispatch({
       type: 'SET_CONNECTIONS',
       payload: state.connections.map(c => ({ ...c, is_default: c.id === id })),

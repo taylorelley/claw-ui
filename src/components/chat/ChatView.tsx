@@ -90,11 +90,8 @@ export function ChatView() {
       sendMessage(text, sessionId);
     } else {
       setTimeout(() => {
-        appendToLastAgentMessage(`I received your message: "${text}"\n\nNote: This is a simulated response. Connect to an OpenClaw gateway to interact with a live agent. You can configure your gateway connection in Agent Config.`, sessionId);
         setStreaming(false);
-        if (sessionId) {
-          addMessage(sessionId, 'agent', `I received your message: "${text}"\n\nNote: This is a simulated response. Connect to an OpenClaw gateway to interact with a live agent.`);
-        }
+        addMessage(sessionId, 'agent', `I received your message: "${text}"\n\nNote: This is a simulated response. Connect to an OpenClaw gateway to interact with a live agent. You can configure your gateway connection in Agent Config.`);
       }, 1200);
     }
 

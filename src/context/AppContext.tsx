@@ -153,20 +153,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     async function init() {
-      const [prefsRes, sessionsRes, connectionsRes, shortcutsRes] = await Promise.all([
-        supabase.from('user_preferences').select('*').eq('preference_key', 'app_preferences').maybeSingle(),
-        supabase.from('sessions').select('*').order('last_active_at', { ascending: false }),
-        supabase.from('agent_connections').select('*').order('created_at', { ascending: true }),
-        supabase.from('shortcuts').select('*').order('display_order', { ascending: true }),
-      ]);
+      try {
+        const [prefsRes, sessionsRes, connectionsRes, shortcutsRes] = await Promise.all([
+          supabase.from('user_preferences').select('*').eq('preference_key', 'app_preferences').maybeSingle(),
+          supabase.from('sessions').select('*').order('last_active_at', { ascending: false }),
+          supabase.from('agent_connections').select('*').order('created_at', { ascending: true }),
+          supabase.from('shortcuts').select('*').order('display_order', { ascending: true }),
+        ]);
 
-      if (prefsRes.data?.preference_value) {
-        dispatch({ type: 'SET_PREFERENCES', payload: prefsRes.data.preference_value as Partial<AppPreferences> });
+        if (prefsRes.data?.preference_value) {
+          dispatch({ type: 'SET_PREFERENCES', payload: prefsRes.data.preference_value as Partial<AppPreferences> });
+        }
+        if (sessionsRes.data) dispatch({ type: 'SET_SESSIONS', payload: sessionsRes.data });
+        if (connectionsRes.data) dispatch({ type: 'SET_CONNECTIONS', payload: connectionsRes.data as AgentConnection[] });
+        if (shortcutsRes.data) dispatch({ type: 'SET_SHORTCUTS', payload: shortcutsRes.data as Shortcut[] });
+      } catch (err) {
+        console.error('Failed to initialize app state:', err);
+      } finally {
+        dispatch({ type: 'SET_INITIALIZED' });
       }
-      if (sessionsRes.data) dispatch({ type: 'SET_SESSIONS', payload: sessionsRes.data });
-      if (connectionsRes.data) dispatch({ type: 'SET_CONNECTIONS', payload: connectionsRes.data as AgentConnection[] });
-      if (shortcutsRes.data) dispatch({ type: 'SET_SHORTCUTS', payload: shortcutsRes.data as Shortcut[] });
-      dispatch({ type: 'SET_INITIALIZED' });
     }
     init();
   }, []);
