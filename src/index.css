@@ -1,0 +1,109 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-surface-0: 255 255 255;
+    --color-surface-1: 248 249 250;
+    --color-surface-2: 241 243 245;
+    --color-surface-3: 233 236 239;
+    --color-border: 222 226 230;
+    --color-border-subtle: 233 236 239;
+    --color-accent: 13 148 136;
+    --color-accent-hover: 15 118 110;
+    --color-accent-muted: 204 251 241;
+    --color-accent-fg: 255 255 255;
+    --color-fg: 26 26 46;
+    --color-fg-secondary: 73 80 87;
+    --color-fg-muted: 134 142 150;
+  }
+
+  .dark {
+    --color-surface-0: 15 17 23;
+    --color-surface-1: 22 25 34;
+    --color-surface-2: 30 33 45;
+    --color-surface-3: 40 44 58;
+    --color-border: 46 51 72;
+    --color-border-subtle: 35 39 56;
+    --color-accent: 45 212 191;
+    --color-accent-hover: 94 234 212;
+    --color-accent-muted: 19 78 74;
+    --color-accent-fg: 15 17 23;
+    --color-fg: 232 234 237;
+    --color-fg-secondary: 161 167 180;
+    --color-fg-muted: 107 114 128;
+  }
+
+  * {
+    border-color: rgb(var(--color-border));
+  }
+
+  body {
+    background-color: rgb(var(--color-surface-0));
+    color: rgb(var(--color-fg));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  ::selection {
+    background-color: rgb(var(--color-accent) / 0.2);
+    color: rgb(var(--color-fg));
+  }
+}
+
+@layer components {
+  .glass {
+    background-color: rgb(var(--color-surface-1) / 0.8);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  .glass-heavy {
+    background-color: rgb(var(--color-surface-1) / 0.92);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+  }
+
+  .shimmer-bg {
+    background: linear-gradient(
+      90deg,
+      rgb(var(--color-surface-2)) 25%,
+      rgb(var(--color-surface-3)) 50%,
+      rgb(var(--color-surface-2)) 75%
+    );
+    background-size: 200% 100%;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--color-border)) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgb(var(--color-border));
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--color-fg-muted));
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
