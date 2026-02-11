@@ -25,13 +25,22 @@ export function useSession() {
 
   const loadMessages = useCallback(async (sessionId: string) => {
     dispatch({ type: 'SET_LOADING_MESSAGES', payload: true });
-    const { data } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: true });
-    dispatch({ type: 'SET_MESSAGES', payload: (data || []) as Message[] });
-    dispatch({ type: 'SET_LOADING_MESSAGES', payload: false });
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: true });
+      if (error) {
+        console.error('Failed to load messages:', error);
+      } else {
+        dispatch({ type: 'SET_MESSAGES', payload: (data || []) as Message[] });
+      }
+    } catch (err) {
+      console.error('Failed to load messages:', err);
+    } finally {
+      dispatch({ type: 'SET_LOADING_MESSAGES', payload: false });
+    }
   }, [dispatch]);
 
   const addMessage = useCallback(async (sessionId: string, role: 'user' | 'agent', content: string, a2uiPayload?: unknown) => {
@@ -48,7 +57,7 @@ export function useSession() {
 
     dispatch({ type: 'ADD_MESSAGE', payload: msg });
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('messages')
       .insert({
         session_id: sessionId,
@@ -60,15 +69,19 @@ export function useSession() {
       .select()
       .single();
 
-    if (data) {
-      dispatch({ type: 'REPLACE_MESSAGE', payload: { tempId, message: data as Message } });
+    if (error || !data) {
+      console.error('Failed to insert message:', error);
+      dispatch({ type: 'REMOVE_MESSAGE', payload: tempId });
+      return null;
     }
+
+    dispatch({ type: 'REPLACE_MESSAGE', payload: { tempId, message: data as Message } });
 
     const now = new Date().toISOString();
     await supabase.from('sessions').update({ last_active_at: now }).eq('id', sessionId);
     dispatch({ type: 'UPDATE_SESSION', payload: { id: sessionId, changes: { last_active_at: now } } });
 
-    return data as Message | null;
+    return data as Message;
   }, [dispatch]);
 
   const updateSessionTitle = useCallback(async (sessionId: string, title: string) => {
@@ -89,8 +102,8 @@ export function useSession() {
     dispatch({ type: 'UPDATE_SESSION', payload: { id: sessionId, changes: { is_pinned: pinned } } });
   }, [dispatch, state.sessions]);
 
-  const appendToLastAgentMessage = useCallback((content: string) => {
-    dispatch({ type: 'APPEND_TO_LAST_AGENT', payload: content });
+  const appendToLastAgentMessage = useCallback((content: string, sessionId: string) => {
+    dispatch({ type: 'APPEND_TO_LAST_AGENT', payload: content, sessionId });
   }, [dispatch]);
 
   const updateLastAgentA2UI = useCallback((payload: Message['a2ui_payload']) => {

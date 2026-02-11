@@ -29,7 +29,8 @@ type Action =
   | { type: 'SET_MESSAGES'; payload: Message[] }
   | { type: 'ADD_MESSAGE'; payload: Message }
   | { type: 'REPLACE_MESSAGE'; payload: { tempId: string; message: Message } }
-  | { type: 'APPEND_TO_LAST_AGENT'; payload: string }
+  | { type: 'APPEND_TO_LAST_AGENT'; payload: string; sessionId: string }
+  | { type: 'REMOVE_MESSAGE'; payload: string }
   | { type: 'UPDATE_LAST_AGENT_A2UI'; payload: Message['a2ui_payload'] }
   | { type: 'SET_LOADING_MESSAGES'; payload: boolean }
   | { type: 'SET_INITIALIZED' };
@@ -92,12 +93,14 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         messages: [...msgs, {
-          id: crypto.randomUUID(), session_id: '', role: 'agent',
+          id: crypto.randomUUID(), session_id: action.sessionId, role: 'agent',
           content: action.payload, a2ui_payload: null, metadata: {},
           created_at: new Date().toISOString(),
         }],
       };
     }
+    case 'REMOVE_MESSAGE':
+      return { ...state, messages: state.messages.filter(m => m.id !== action.payload) };
     case 'UPDATE_LAST_AGENT_A2UI': {
       const msgs = state.messages;
       const last = msgs[msgs.length - 1];
