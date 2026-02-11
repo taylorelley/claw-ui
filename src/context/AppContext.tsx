@@ -1,5 +1,5 @@
-import { createContext, useContext, useReducer, useEffect, useCallback, type ReactNode } from 'react';
-import type { AppPreferences, Session, AgentConnection, Shortcut } from '../lib/types';
+import { createContext, useContext, useReducer, useEffect, useCallback, useRef, type ReactNode } from 'react';
+import type { AppPreferences, Session, AgentConnection, Shortcut, Message } from '../lib/types';
 import { DEFAULT_PREFERENCES } from '../lib/types';
 import { supabase } from '../lib/supabase';
 
@@ -9,6 +9,8 @@ interface AppState {
   activeSessionId: string | null;
   connections: AgentConnection[];
   shortcuts: Shortcut[];
+  messages: Message[];
+  loadingMessages: boolean;
   initialized: boolean;
 }
 
@@ -24,6 +26,12 @@ type Action =
   | { type: 'UPDATE_CONNECTION'; payload: { id: string; changes: Partial<AgentConnection> } }
   | { type: 'REMOVE_CONNECTION'; payload: string }
   | { type: 'SET_SHORTCUTS'; payload: Shortcut[] }
+  | { type: 'SET_MESSAGES'; payload: Message[] }
+  | { type: 'ADD_MESSAGE'; payload: Message }
+  | { type: 'REPLACE_MESSAGE'; payload: { tempId: string; message: Message } }
+  | { type: 'APPEND_TO_LAST_AGENT'; payload: string }
+  | { type: 'UPDATE_LAST_AGENT_A2UI'; payload: Message['a2ui_payload'] }
+  | { type: 'SET_LOADING_MESSAGES'; payload: boolean }
   | { type: 'SET_INITIALIZED' };
 
 function reducer(state: AppState, action: Action): AppState {
@@ -64,6 +72,42 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, connections: state.connections.filter(c => c.id !== action.payload) };
     case 'SET_SHORTCUTS':
       return { ...state, shortcuts: action.payload };
+    case 'SET_MESSAGES':
+      return { ...state, messages: action.payload };
+    case 'ADD_MESSAGE':
+      return { ...state, messages: [...state.messages, action.payload] };
+    case 'REPLACE_MESSAGE':
+      return {
+        ...state,
+        messages: state.messages.map(m =>
+          m.id === action.payload.tempId ? action.payload.message : m
+        ),
+      };
+    case 'APPEND_TO_LAST_AGENT': {
+      const msgs = state.messages;
+      const last = msgs[msgs.length - 1];
+      if (last && last.role === 'agent') {
+        return { ...state, messages: [...msgs.slice(0, -1), { ...last, content: last.content + action.payload }] };
+      }
+      return {
+        ...state,
+        messages: [...msgs, {
+          id: crypto.randomUUID(), session_id: '', role: 'agent',
+          content: action.payload, a2ui_payload: null, metadata: {},
+          created_at: new Date().toISOString(),
+        }],
+      };
+    }
+    case 'UPDATE_LAST_AGENT_A2UI': {
+      const msgs = state.messages;
+      const last = msgs[msgs.length - 1];
+      if (last && last.role === 'agent') {
+        return { ...state, messages: [...msgs.slice(0, -1), { ...last, a2ui_payload: action.payload }] };
+      }
+      return state;
+    }
+    case 'SET_LOADING_MESSAGES':
+      return { ...state, loadingMessages: action.payload };
     case 'SET_INITIALIZED':
       return { ...state, initialized: true };
     default:
@@ -77,6 +121,8 @@ const initialState: AppState = {
   activeSessionId: null,
   connections: [],
   shortcuts: [],
+  messages: [],
+  loadingMessages: false,
   initialized: false,
 };
 
@@ -90,15 +136,17 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const prefsRef = useRef(state.preferences);
+  useEffect(() => { prefsRef.current = state.preferences; }, [state.preferences]);
 
   const updatePreferences = useCallback(async (prefs: Partial<AppPreferences>) => {
     dispatch({ type: 'SET_PREFERENCES', payload: prefs });
-    const merged = { ...state.preferences, ...prefs };
+    const merged = { ...prefsRef.current, ...prefs };
     await supabase.from('user_preferences').upsert(
       { preference_key: 'app_preferences', preference_value: merged, updated_at: new Date().toISOString() },
       { onConflict: 'preference_key' }
     );
-  }, [state.preferences]);
+  }, []);
 
   useEffect(() => {
     async function init() {
@@ -127,8 +175,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } else if (state.preferences.theme === 'light') {
       root.classList.remove('dark');
     } else {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      root.classList.toggle('dark', prefersDark);
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
+      root.classList.toggle('dark', mq.matches);
+      const handler = (e: MediaQueryListEvent) => root.classList.toggle('dark', e.matches);
+      mq.addEventListener('change', handler);
+      return () => mq.removeEventListener('change', handler);
     }
   }, [state.preferences.theme]);
 
@@ -139,6 +190,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useApp() {
   const ctx = useContext(AppContext);
   if (!ctx) throw new Error('useApp must be used within AppProvider');

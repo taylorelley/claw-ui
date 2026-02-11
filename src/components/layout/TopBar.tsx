@@ -1,13 +1,17 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Moon, Sun, PanelLeftClose, PanelLeftOpen, Zap, Settings } from 'lucide-react';
+import { Search, Moon, Sun, Monitor, PanelLeftClose, PanelLeftOpen, Zap, Settings } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { cn } from '../../lib/cn';
+import type { ThemeMode } from '../../lib/types';
 
 interface TopBarProps {
   onToggleSidebar: () => void;
   sidebarCollapsed: boolean;
 }
+
+const THEME_CYCLE: ThemeMode[] = ['light', 'dark', 'auto'];
+const THEME_ICONS = { light: Sun, dark: Moon, auto: Monitor } as const;
 
 export function TopBar({ onToggleSidebar, sidebarCollapsed }: TopBarProps) {
   const { state, updatePreferences } = useApp();
@@ -16,7 +20,14 @@ export function TopBar({ onToggleSidebar, sidebarCollapsed }: TopBarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const isDark = state.preferences.theme === 'dark';
+  const currentTheme = state.preferences.theme;
+  const ThemeIcon = THEME_ICONS[currentTheme];
+
+  const cycleTheme = () => {
+    const idx = THEME_CYCLE.indexOf(currentTheme);
+    const next = THEME_CYCLE[(idx + 1) % THEME_CYCLE.length];
+    updatePreferences({ theme: next });
+  };
 
   useEffect(() => {
     if (searchOpen && searchRef.current) searchRef.current.focus();
@@ -84,10 +95,11 @@ export function TopBar({ onToggleSidebar, sidebarCollapsed }: TopBarProps) {
         </button>
 
         <button
-          onClick={() => updatePreferences({ theme: isDark ? 'light' : 'dark' })}
+          onClick={cycleTheme}
           className="w-8 h-8 rounded-lg flex items-center justify-center text-foreground-muted hover:text-foreground hover:bg-surface-2 transition-all duration-150"
+          title={`Theme: ${currentTheme}`}
         >
-          {isDark ? <Sun size={16} /> : <Moon size={16} />}
+          <ThemeIcon size={16} />
         </button>
 
         <button

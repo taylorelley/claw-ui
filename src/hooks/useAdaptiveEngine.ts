@@ -35,6 +35,8 @@ export function useAdaptiveEngine() {
   }, [state.preferences.adaptiveEnabled, flushEvents]);
 
   const analyzeCommandFrequency = useCallback(async () => {
+    if (document.hidden) return;
+
     const { data } = await supabase
       .from('interaction_events')
       .select('event_type, event_data, created_at')
@@ -115,10 +117,18 @@ export function useAdaptiveEngine() {
   }, [state.shortcuts, dispatch]);
 
   useEffect(() => {
-    analyzeCommandFrequency();
+    const initialTimer = setTimeout(analyzeCommandFrequency, 0);
     const interval = setInterval(analyzeCommandFrequency, 60000);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) analyzeCommandFrequency();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
+      clearTimeout(initialTimer);
       clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
       flushEvents();
     };
