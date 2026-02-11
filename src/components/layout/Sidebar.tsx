@@ -1,8 +1,9 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   MessageSquare, Plus, Pin, LayoutDashboard, Server,
-  Clock, ChevronDown, ChevronRight, Zap, Trash2,
+  Clock, ChevronDown, ChevronRight, Zap, Trash2, LogOut,
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { useSession } from '../../hooks/useSession';
 import { cn } from '../../lib/cn';
@@ -16,6 +17,7 @@ interface SidebarProps {
 export function Sidebar({ collapsed, width }: SidebarProps) {
   const { state, dispatch } = useApp();
   const { createSession, deleteSession } = useSession();
+  const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -105,6 +107,13 @@ export function Sidebar({ collapsed, width }: SidebarProps) {
             title="History"
           >
             <Clock size={16} />
+          </button>
+          <button
+            onClick={signOut}
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-foreground-muted hover:text-error hover:bg-error/10 transition-all duration-150"
+            title="Sign out"
+          >
+            <LogOut size={16} />
           </button>
         </div>
       </aside>
@@ -210,6 +219,18 @@ export function Sidebar({ collapsed, width }: SidebarProps) {
           active={location.pathname === '/history'}
           onClick={() => navigate('/history')}
         />
+        <div className="pt-2 mt-2 border-t border-border">
+          <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-foreground-muted truncate">
+            {user?.email}
+          </div>
+          <button
+            onClick={signOut}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-foreground-secondary hover:text-error hover:bg-error/10 transition-all duration-150"
+          >
+            <LogOut size={16} />
+            Sign out
+          </button>
+        </div>
       </div>
     </aside>
   );
