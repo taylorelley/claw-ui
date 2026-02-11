@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Server, Plus, Trash2, Check, X, RefreshCw, Star, StarOff, Wifi, WifiOff } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { supabase } from '../lib/supabase';
@@ -10,6 +10,14 @@ export function AgentsPage() {
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ name: '', gateway_url: 'ws://127.0.0.1:18789', auth_token: '' });
   const [testing, setTesting] = useState<string | null>(null);
+  const testWsRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    return () => {
+      testWsRef.current?.close();
+      testWsRef.current = null;
+    };
+  }, []);
 
   const handleAdd = async () => {
     if (!form.gateway_url.trim()) return;
@@ -39,8 +47,15 @@ export function AgentsPage() {
   };
 
   const handleSetDefault = async (id: string) => {
-    for (const conn of state.connections) {
-      await supabase.from('agent_connections').update({ is_default: conn.id === id }).eq('id', conn.id);
+    const [clearRes, setRes] = await Promise.all([
+      supabase.from('agent_connections').update({ is_default: false }).neq('id', id),
+      supabase.from('agent_connections').update({ is_default: true }).eq('id', id),
+    ]);
+    if (clearRes.error || setRes.error) {
+      console.error('Failed to set default connection:', clearRes.error || setRes.error);
+      const { data } = await supabase.from('agent_connections').select('*').order('created_at', { ascending: true });
+      if (data) dispatch({ type: 'SET_CONNECTIONS', payload: data as AgentConnection[] });
+      return;
     }
     dispatch({
       type: 'SET_CONNECTIONS',
@@ -54,14 +69,20 @@ export function AgentsPage() {
 
     try {
       const ws = new WebSocket(conn.gateway_url);
+      testWsRef.current = ws;
       await new Promise<void>((resolve, reject) => {
-        ws.onopen = () => { resolve(); ws.close(); };
-        ws.onerror = () => reject(new Error('Connection failed'));
-        setTimeout(() => reject(new Error('Timeout')), 5000);
+        const timer = setTimeout(() => {
+          ws.close();
+          reject(new Error('Timeout'));
+        }, 5000);
+        ws.onopen = () => { clearTimeout(timer); resolve(); ws.close(); };
+        ws.onerror = () => { clearTimeout(timer); ws.close(); reject(new Error('Connection failed')); };
       });
+      testWsRef.current = null;
       dispatch({ type: 'UPDATE_CONNECTION', payload: { id: conn.id, changes: { status: 'connected' } } });
       await supabase.from('agent_connections').update({ status: 'connected', updated_at: new Date().toISOString() }).eq('id', conn.id);
     } catch {
+      testWsRef.current = null;
       dispatch({ type: 'UPDATE_CONNECTION', payload: { id: conn.id, changes: { status: 'error' } } });
       await supabase.from('agent_connections').update({ status: 'error', updated_at: new Date().toISOString() }).eq('id', conn.id);
     }

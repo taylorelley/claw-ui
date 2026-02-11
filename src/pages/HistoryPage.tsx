@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, MessageSquare, ArrowRight, Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -14,6 +14,10 @@ interface HistoryEntry {
   last_active: string;
 }
 
+function escapeIlike(str: string): string {
+  return str.replace(/[%_\\]/g, c => '\\' + c);
+}
+
 export function HistoryPage() {
   const { state } = useApp();
   const navigate = useNavigate();
@@ -21,38 +25,55 @@ export function HistoryPage() {
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [searchResults, setSearchResults] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
-  useEffect(() => {
-    loadHistory();
-  }, []);
-
-  async function loadHistory() {
+  const loadHistory = useCallback(async () => {
     setLoading(true);
-    const historyEntries: HistoryEntry[] = [];
 
-    for (const session of state.sessions) {
-      const { data, count } = await supabase
-        .from('messages')
-        .select('content', { count: 'exact' })
-        .eq('session_id', session.id)
-        .order('created_at', { ascending: false })
-        .limit(1);
+    if (state.sessions.length === 0) {
+      setEntries([]);
+      setLoading(false);
+      return;
+    }
 
-      historyEntries.push({
+    const sessionIds = state.sessions.map(s => s.id);
+    const { data: allMessages } = await supabase
+      .from('messages')
+      .select('session_id, content, created_at')
+      .in('session_id', sessionIds)
+      .order('created_at', { ascending: false });
+
+    const countMap = new Map<string, { count: number; lastContent: string }>();
+    for (const msg of allMessages || []) {
+      const existing = countMap.get(msg.session_id);
+      if (existing) {
+        existing.count++;
+      } else {
+        countMap.set(msg.session_id, { count: 1, lastContent: (msg.content || '').slice(0, 100) });
+      }
+    }
+
+    const historyEntries: HistoryEntry[] = state.sessions.map(session => {
+      const info = countMap.get(session.id);
+      return {
         session_id: session.id,
         session_title: session.title,
-        message_count: count || 0,
-        last_message: data?.[0]?.content?.slice(0, 100) || '',
+        message_count: info?.count || 0,
+        last_message: info?.lastContent || '',
         last_active: session.last_active_at,
-      });
-    }
+      };
+    });
 
     setEntries(historyEntries);
     setLoading(false);
-  }
+  }, [state.sessions]);
 
-  async function handleSearch(query: string) {
-    setSearchQuery(query);
+  useEffect(() => {
+    const timer = setTimeout(loadHistory, 0);
+    return () => clearTimeout(timer);
+  }, [loadHistory]);
+
+  const executeSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
       return;
@@ -61,12 +82,24 @@ export function HistoryPage() {
     const { data } = await supabase
       .from('messages')
       .select('*')
-      .ilike('content', `%${query}%`)
+      .ilike('content', `%${escapeIlike(query)}%`)
       .order('created_at', { ascending: false })
       .limit(20);
 
     setSearchResults((data || []) as Message[]);
-  }
+  }, []);
+
+  const handleSearchInput = (query: string) => {
+    setSearchQuery(query);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => executeSearch(query), 300);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   const groupedByDate = entries.reduce<Record<string, HistoryEntry[]>>((acc, entry) => {
     const date = new Date(entry.last_active).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
@@ -85,7 +118,7 @@ export function HistoryPage() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted" />
           <input
             value={searchQuery}
-            onChange={e => handleSearch(e.target.value)}
+            onChange={e => handleSearchInput(e.target.value)}
             placeholder="Search messages..."
             className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-surface-1 border border-border text-foreground placeholder:text-foreground-muted focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all"
           />

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import type { ReactNode } from 'react';
 import type { A2UIComponentDef, A2UISurfaceState, A2UIAction, A2UIRendererProps } from './types';
 import { TextComponent } from './components/TextComponent';

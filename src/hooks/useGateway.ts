@@ -24,6 +24,12 @@ export function useGateway({ url, authToken, onA2UIMessage, onTextMessage, autoR
   const pendingRef = useRef<Map<string, PendingCall>>(new Map());
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const reconnectAttemptRef = useRef(0);
+  const connectRef = useRef<() => void>();
+  const onA2UIMessageRef = useRef(onA2UIMessage);
+  const onTextMessageRef = useRef(onTextMessage);
+
+  useEffect(() => { onA2UIMessageRef.current = onA2UIMessage; }, [onA2UIMessage]);
+  useEffect(() => { onTextMessageRef.current = onTextMessage; }, [onTextMessage]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
@@ -65,14 +71,14 @@ export function useGateway({ url, authToken, onA2UIMessage, onTextMessage, autoR
             continue;
           }
           if (msg.type && ['createSurface', 'updateComponents', 'updateDataModel', 'deleteSurface'].includes(msg.type)) {
-            onA2UIMessage?.(msg as A2UIMessage);
+            onA2UIMessageRef.current?.(msg as A2UIMessage);
           } else if (msg.content || msg.text) {
-            onTextMessage?.(msg.content || msg.text);
+            onTextMessageRef.current?.(msg.content || msg.text);
           }
         }
       } catch {
         if (typeof event.data === 'string') {
-          onTextMessage?.(event.data);
+          onTextMessageRef.current?.(event.data);
         }
       }
     };
@@ -84,10 +90,12 @@ export function useGateway({ url, authToken, onA2UIMessage, onTextMessage, autoR
       if (autoReconnect) {
         const delay = Math.min(1000 * Math.pow(2, reconnectAttemptRef.current), 30000);
         reconnectAttemptRef.current++;
-        reconnectTimerRef.current = setTimeout(connect, delay);
+        reconnectTimerRef.current = setTimeout(() => connectRef.current?.(), delay);
       }
     };
-  }, [url, authToken, onA2UIMessage, onTextMessage, autoReconnect, disconnect]);
+  }, [url, authToken, autoReconnect, disconnect]);
+
+  useEffect(() => { connectRef.current = connect; }, [connect]);
 
   const rpcCall = useCallback((method: string, params?: unknown): Promise<unknown> => {
     return new Promise((resolve, reject) => {
@@ -122,13 +130,14 @@ export function useGateway({ url, authToken, onA2UIMessage, onTextMessage, autoR
   }, []);
 
   useEffect(() => {
+    const pending = pendingRef.current;
     return () => {
       disconnect();
-      pendingRef.current.forEach(p => {
+      pending.forEach(p => {
         clearTimeout(p.timeout);
         p.reject(new Error('Disconnected'));
       });
-      pendingRef.current.clear();
+      pending.clear();
     };
   }, [disconnect]);
 

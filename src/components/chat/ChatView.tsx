@@ -43,9 +43,9 @@ export function ChatView() {
   }, [updateLastAgentA2UI]);
 
   const handleTextMessage = useCallback((text: string) => {
-    appendToLastAgentMessage(text);
+    if (sessionId) appendToLastAgentMessage(text, sessionId);
     setStreaming(false);
-  }, [appendToLastAgentMessage]);
+  }, [appendToLastAgentMessage, sessionId]);
 
   const { status, connect, sendMessage, sendAction } = useGateway({
     url: connection?.gateway_url || null,
@@ -90,11 +90,8 @@ export function ChatView() {
       sendMessage(text, sessionId);
     } else {
       setTimeout(() => {
-        appendToLastAgentMessage(`I received your message: "${text}"\n\nNote: This is a simulated response. Connect to an OpenClaw gateway to interact with a live agent. You can configure your gateway connection in Agent Config.`);
         setStreaming(false);
-        if (sessionId) {
-          addMessage(sessionId, 'agent', `I received your message: "${text}"\n\nNote: This is a simulated response. Connect to an OpenClaw gateway to interact with a live agent.`);
-        }
+        addMessage(sessionId, 'agent', `I received your message: "${text}"\n\nNote: This is a simulated response. Connect to an OpenClaw gateway to interact with a live agent. You can configure your gateway connection in Agent Config.`);
       }, 1200);
     }
 
