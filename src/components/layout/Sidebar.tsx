@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   MessageSquare, Plus, Pin, LayoutDashboard, Server,
-  Clock, ChevronDown, ChevronRight, Zap, Trash2, LogOut,
+  Clock, ChevronDown, ChevronRight, Zap, Trash2, LogOut, Bot,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
@@ -89,12 +89,22 @@ export function Sidebar({ collapsed, width }: SidebarProps) {
 
         <div className="mt-auto flex flex-col gap-1">
           <button
+            onClick={() => navigate('/agent-management')}
+            className={cn(
+              'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150',
+              location.pathname === '/agent-management' ? 'bg-accent/10 text-accent' : 'text-foreground-muted hover:text-foreground hover:bg-surface-2',
+            )}
+            title="Manage Agents"
+          >
+            <Bot size={16} />
+          </button>
+          <button
             onClick={() => navigate('/agents')}
             className={cn(
               'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150',
               location.pathname === '/agents' ? 'bg-accent/10 text-accent' : 'text-foreground-muted hover:text-foreground hover:bg-surface-2',
             )}
-            title="Agents"
+            title="Agent Config"
           >
             <Server size={16} />
           </button>
@@ -207,6 +217,12 @@ export function Sidebar({ collapsed, width }: SidebarProps) {
       </nav>
 
       <div className="border-t border-border p-2 space-y-1">
+        <NavItem
+          icon={<Bot size={16} />}
+          label="Manage Agents"
+          active={location.pathname === '/agent-management'}
+          onClick={() => navigate('/agent-management')}
+        />
         <NavItem
           icon={<Server size={16} />}
           label="Agent Config"

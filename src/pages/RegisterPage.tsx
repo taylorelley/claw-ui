@@ -106,12 +106,17 @@ export function RegisterPage() {
             </p>
           </div>
 
-          <Link
-            to="/login"
-            className="block text-center text-accent hover:text-accent/80 font-medium transition-colors"
-          >
-            Return to login
-          </Link>
+          <div className="space-y-3">
+            <p className="text-center text-sm text-foreground/60">
+              After verifying your email, sign in to set up your first agent.
+            </p>
+            <Link
+              to="/login"
+              className="block text-center text-accent hover:text-accent/80 font-medium transition-colors"
+            >
+              Return to login
+            </Link>
+          </div>
         </div>
       </div>
     );
