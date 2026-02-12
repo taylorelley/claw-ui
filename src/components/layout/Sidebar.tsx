@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  MessageSquare, Plus, Pin, LayoutDashboard, Server,
-  Clock, ChevronDown, ChevronRight, Zap, Trash2, LogOut, Bot,
+  MessageSquare, Plus, Pin, LayoutDashboard,
+  Clock, ChevronDown, ChevronRight, Zap, Trash2, LogOut, Bot, Settings as SettingsIcon,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
@@ -50,7 +50,7 @@ export function Sidebar({ collapsed, width }: SidebarProps) {
             'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150',
             location.pathname === '/' ? 'bg-accent/10 text-accent' : 'text-foreground-muted hover:text-foreground hover:bg-surface-2',
           )}
-          title="Dashboard"
+          title="Home"
         >
           <LayoutDashboard size={18} />
         </button>
@@ -99,24 +99,14 @@ export function Sidebar({ collapsed, width }: SidebarProps) {
             <Bot size={16} />
           </button>
           <button
-            onClick={() => navigate('/agents')}
+            onClick={() => navigate('/settings')}
             className={cn(
               'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150',
-              location.pathname === '/agents' ? 'bg-accent/10 text-accent' : 'text-foreground-muted hover:text-foreground hover:bg-surface-2',
+              location.pathname === '/settings' ? 'bg-accent/10 text-accent' : 'text-foreground-muted hover:text-foreground hover:bg-surface-2',
             )}
-            title="Agent Config"
+            title="Settings"
           >
-            <Server size={16} />
-          </button>
-          <button
-            onClick={() => navigate('/history')}
-            className={cn(
-              'w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-150',
-              location.pathname === '/history' ? 'bg-accent/10 text-accent' : 'text-foreground-muted hover:text-foreground hover:bg-surface-2',
-            )}
-            title="History"
-          >
-            <Clock size={16} />
+            <SettingsIcon size={16} />
           </button>
           <button
             onClick={signOut}
@@ -148,7 +138,7 @@ export function Sidebar({ collapsed, width }: SidebarProps) {
       <nav className="flex-1 overflow-y-auto scrollbar-thin p-2 space-y-1">
         <NavItem
           icon={<LayoutDashboard size={16} />}
-          label="Dashboard"
+          label="Home"
           active={location.pathname === '/'}
           onClick={() => navigate('/')}
         />
@@ -219,21 +209,21 @@ export function Sidebar({ collapsed, width }: SidebarProps) {
       <div className="border-t border-border p-2 space-y-1">
         <NavItem
           icon={<Bot size={16} />}
-          label="Manage Agents"
+          label="Agents"
           active={location.pathname === '/agent-management'}
           onClick={() => navigate('/agent-management')}
-        />
-        <NavItem
-          icon={<Server size={16} />}
-          label="Agent Config"
-          active={location.pathname === '/agents'}
-          onClick={() => navigate('/agents')}
         />
         <NavItem
           icon={<Clock size={16} />}
           label="History"
           active={location.pathname === '/history'}
           onClick={() => navigate('/history')}
+        />
+        <NavItem
+          icon={<SettingsIcon size={16} />}
+          label="Settings"
+          active={location.pathname === '/settings'}
+          onClick={() => navigate('/settings')}
         />
         <div className="pt-2 mt-2 border-t border-border">
           <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-foreground-muted truncate">

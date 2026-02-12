@@ -1,0 +1,12 @@
+{
+  "name": "claw-ui-channel",
+  "version": "1.0.0",
+  "description": "OpenClaw channel plugin for claw-ui web interface",
+  "main": "index.js",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.16.0",
+    "uuid": "^9.0.0"
+  }
+}
