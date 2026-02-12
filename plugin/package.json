@@ -1,12 +1,40 @@
 {
-  "name": "claw-ui-channel",
+  "name": "@taylorelley/claw-ui-plugin",
   "version": "1.0.0",
   "description": "OpenClaw channel plugin for claw-ui web interface",
   "main": "index.js",
   "type": "commonjs",
+  "keywords": [
+    "openclaw",
+    "plugin",
+    "channel",
+    "claw-ui",
+    "websocket",
+    "chat"
+  ],
+  "author": "Taylor Elley",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taylorelley/claw-ui.git",
+    "directory": "plugin"
+  },
+  "bugs": {
+    "url": "https://github.com/taylorelley/claw-ui/issues"
+  },
+  "homepage": "https://github.com/taylorelley/claw-ui#readme",
+  "files": [
+    "index.js",
+    "src/",
+    "openclaw.plugin.json",
+    "README.md"
+  ],
   "dependencies": {
     "express": "^4.18.2",
     "ws": "^8.16.0",
     "uuid": "^9.0.0"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   }
 }

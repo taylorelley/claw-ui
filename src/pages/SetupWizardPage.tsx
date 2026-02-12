@@ -241,11 +241,22 @@ export function SetupWizardPage() {
               Install the claw-ui plugin on your OpenClaw instance.
             </p>
 
-            <div className="p-4 rounded-lg bg-surface-1 border border-border space-y-3">
-              <p className="text-sm font-medium text-foreground/80">On your OpenClaw server, run:</p>
-              <code className="block px-4 py-3 rounded-lg bg-surface-2 text-foreground font-mono text-sm">
-                openclaw plugin install claw-ui
-              </code>
+            <div className="p-4 rounded-lg bg-surface-1 border border-border space-y-4">
+              <div>
+                <p className="text-sm font-medium text-foreground/80 mb-2">1. Configure npm for GitHub Packages:</p>
+                <code className="block px-4 py-3 rounded-lg bg-surface-2 text-foreground font-mono text-sm break-all">
+                  echo "@taylorelley:registry=https://npm.pkg.github.com" &gt;&gt; ~/.npmrc
+                </code>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground/80 mb-2">2. Install the plugin:</p>
+                <code className="block px-4 py-3 rounded-lg bg-surface-2 text-foreground font-mono text-sm">
+                  npm install -g @taylorelley/claw-ui-plugin
+                </code>
+              </div>
+              <p className="text-xs text-foreground/50">
+                Or clone from GitHub: git clone https://github.com/taylorelley/claw-ui.git
+              </p>
             </div>
 
             <div className="flex gap-2">
@@ -286,15 +297,23 @@ export function SetupWizardPage() {
 
               <div>
                 <p className="text-sm font-medium text-foreground/80 mb-2">
-                  2. Add this to your OpenClaw config (usually <code className="text-accent">~/.openclaw/config.yml</code>):
+                  2. Add this to your OpenClaw config (usually <code className="text-accent">~/.openclaw/config.yaml</code>):
                 </p>
                 <pre className="px-4 py-3 rounded-lg bg-surface-2 text-foreground font-mono text-sm overflow-x-auto">
-{`channels:
+{`# Load the claw-ui plugin
+plugins:
+  load:
+    paths:
+      - /usr/lib/node_modules/@taylorelley/claw-ui-plugin
+
+# Configure the channel
+channels:
   claw-ui:
     enabled: true
     mode: cloud
     relayUrl: ${RELAY_URL}
-    pairingToken: \${CLAW_UI_TOKEN}`}
+    tokenId: "${currentAgent?.id || 'your-token-id'}"
+    # Token secret is read from CLAW_UI_TOKEN env var`}
                 </pre>
               </div>
 
