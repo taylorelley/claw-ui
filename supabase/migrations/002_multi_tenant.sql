@@ -29,7 +29,7 @@ CREATE POLICY "Users can view their own agent tokens" ON agent_tokens FOR SELECT
 CREATE POLICY "Users can create their own agent tokens" ON agent_tokens FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update their own agent tokens" ON agent_tokens FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own agent tokens" ON agent_tokens FOR DELETE USING (auth.uid() = user_id);
-CREATE POLICY "Allow anon full access to agent_tokens" ON agent_tokens FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "Deny anon access to agent_tokens" ON agent_tokens FOR ALL TO anon USING (false) WITH CHECK (false);
 
 -- 2. ADD USER_ID COLUMNS TO EXISTING TABLES
 ALTER TABLE agent_connections ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;

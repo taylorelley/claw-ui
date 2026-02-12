@@ -84,7 +84,7 @@ The migration file exists but hasn't been applied to the database yet. This is a
 **Database credentials:**
 - Host: `supabase-db` (or via Coolify network)
 - User: `postgres`
-- Password: `twiH44Zp48DeDxcZqWs1OrqXwGGhG5u4`
+- Password: Retrieve from Coolify secrets or `DB_PASSWORD` environment variable
 - Database: `postgres`
 
 ### 📝 Email Configuration Required
@@ -101,8 +101,8 @@ For registration to work, Supabase must have SMTP configured:
 When deploying claw-ui, set these environment variables:
 
 ```env
-VITE_SUPABASE_URL=https://supabasekong-skgkk080c44ow08gco8c08og.app.taylorelley.com
-VITE_SUPABASE_ANON_KEY=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc3MDUwMzIyMCwiZXhwIjo0OTI2MTc2ODIwLCJyb2xlIjoiYW5vbiJ9.-p_KYs8IGMGxhuhNTQcZf2KOhyCHziqwv0PA-oDYbMY
+VITE_SUPABASE_URL=<your-supabase-url>
+VITE_SUPABASE_ANON_KEY=<your-supabase-anon-key>
 ```
 
 ## Testing Checklist
