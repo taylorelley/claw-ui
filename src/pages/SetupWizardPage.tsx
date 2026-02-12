@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronRight, ChevronLeft, Check, Copy, CheckCircle, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
 import { createAgentToken, getAgentStatus } from '../services/agentTokenService';
 
-type Step = 'name' | 'generate' | 'install' | 'configure' | 'verify';
+type Step = 'name' | 'generate' | 'configure' | 'verify';
 
 const RELAY_URL = 'wss://claw-ui.app.taylorelley.com/relay';
 
@@ -21,7 +21,7 @@ export function SetupWizardPage() {
   const [configMode, setConfigMode] = useState<'agent' | 'manual'>('agent');
   const [copiedPrompt, setCopiedPrompt] = useState(false);
 
-  const steps: Step[] = ['name', 'generate', 'install', 'configure', 'verify'];
+  const steps: Step[] = ['name', 'generate', 'configure', 'verify'];
   const stepIndex = steps.indexOf(currentStep);
 
   // Auto-check connection status on verify step
@@ -235,50 +235,6 @@ export function SetupWizardPage() {
           </div>
         );
 
-      case 'install':
-        return (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-semibold text-foreground">Install Plugin</h2>
-            <p className="text-foreground/60">
-              Install the claw-ui plugin on your OpenClaw instance.
-            </p>
-
-            <div className="p-4 rounded-lg bg-surface-1 border border-border space-y-4">
-              <div>
-                <p className="text-sm font-medium text-foreground/80 mb-2">1. Configure npm for GitHub Packages:</p>
-                <code className="block px-4 py-3 rounded-lg bg-surface-2 text-foreground font-mono text-sm break-all">
-                  echo "@taylorelley:registry=https://npm.pkg.github.com" &gt;&gt; ~/.npmrc
-                </code>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-foreground/80 mb-2">2. Install the plugin:</p>
-                <code className="block px-4 py-3 rounded-lg bg-surface-2 text-foreground font-mono text-sm">
-                  npm install -g @taylorelley/claw-ui-plugin
-                </code>
-              </div>
-              <p className="text-xs text-foreground/50">
-                Or clone from GitHub: git clone https://github.com/taylorelley/claw-ui.git
-              </p>
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={handleNext}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-accent text-white font-medium hover:bg-accent/90 transition-colors"
-              >
-                Continue
-                <ChevronRight className="w-4 h-4" />
-              </button>
-              <button
-                onClick={handleBack}
-                className="px-4 py-2.5 rounded-lg bg-surface-2 text-foreground font-medium hover:bg-surface-2/80 transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        );
-
       case 'configure':
         const agentPrompt = `Install and configure the claw-ui plugin for me with these settings:
 
@@ -358,7 +314,25 @@ Please complete all steps and confirm when done.`;
               <div className="space-y-3">
                 <div>
                   <p className="text-sm font-medium text-foreground/80 mb-2">
-                    1. Set your pairing token as an environment variable:
+                    1. Configure npm for GitHub Packages:
+                  </p>
+                  <code className="block px-4 py-3 rounded-lg bg-surface-2 text-foreground font-mono text-sm break-all">
+                    echo "@taylorelley:registry=https://npm.pkg.github.com" &gt;&gt; ~/.npmrc
+                  </code>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-foreground/80 mb-2">
+                    2. Install the plugin:
+                  </p>
+                  <code className="block px-4 py-3 rounded-lg bg-surface-2 text-foreground font-mono text-sm">
+                    npm install -g @taylorelley/claw-ui-plugin
+                  </code>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-foreground/80 mb-2">
+                    3. Set your pairing token as an environment variable:
                   </p>
                   <code className="block px-4 py-3 rounded-lg bg-surface-2 text-foreground font-mono text-sm break-all">
                     export CLAW_UI_TOKEN="{generatedToken}"
@@ -367,7 +341,7 @@ Please complete all steps and confirm when done.`;
 
                 <div>
                   <p className="text-sm font-medium text-foreground/80 mb-2">
-                    2. Add this to your OpenClaw config (usually <code className="text-accent">~/.openclaw/config.yaml</code>):
+                    4. Add this to your OpenClaw config (usually <code className="text-accent">~/.openclaw/config.yaml</code>):
                   </p>
                   <pre className="px-4 py-3 rounded-lg bg-surface-2 text-foreground font-mono text-sm overflow-x-auto">
 {`# Load the claw-ui plugin
@@ -389,7 +363,7 @@ channels:
 
                 <div>
                   <p className="text-sm font-medium text-foreground/80 mb-2">
-                    3. Restart OpenClaw:
+                    5. Restart OpenClaw:
                   </p>
                   <code className="block px-4 py-3 rounded-lg bg-surface-2 text-foreground font-mono text-sm">
                     openclaw gateway restart
