@@ -7,7 +7,7 @@ All code changes for Phase 1 (Multi-Tenant Database + Registration) have been im
 ## Deliverables
 
 ### 1. ✅ Database Migration Created
-**File:** `/tmp/claw-ui/supabase/migrations/002_multi_tenant.sql`
+**File:** `supabase/migrations/20260212101500_multi_tenant.sql`
 
 **What it does:**
 - Creates `agent_tokens` table for OpenClaw plugin pairing
@@ -24,7 +24,7 @@ All code changes for Phase 1 (Multi-Tenant Database + Registration) have been im
 - User enumeration protection in registration
 
 ### 2. ✅ Registration Page Created
-**File:** `/tmp/claw-ui/src/pages/RegisterPage.tsx`
+**File:** `src/pages/RegisterPage.tsx`
 
 **Features:**
 - Clean, modern UI matching existing design
@@ -40,8 +40,8 @@ All code changes for Phase 1 (Multi-Tenant Database + Registration) have been im
 
 ### 3. ✅ Auth Flow Updated
 **Files Modified:**
-- `/tmp/claw-ui/src/App.tsx` - Added `/register` route
-- `/tmp/claw-ui/src/pages/LoginPage.tsx` - Added registration link
+- `src/App.tsx` - Added `/register` route
+- `src/pages/LoginPage.tsx` - Added registration link
 
 **Flow:**
 ```
@@ -73,12 +73,12 @@ The migration file exists but hasn't been applied to the database yet. This is a
 
 2. **Via Docker Exec** (From Coolify server)
    ```bash
-   docker exec -i supabase-db-... psql -U postgres -d postgres < 002_multi_tenant.sql
+   docker exec -i supabase-db-... psql -U postgres -d postgres < 20260212101500_multi_tenant.sql
    ```
 
 3. **Via psql** (From any machine with psql)
    ```bash
-   psql -h <host> -U postgres -d postgres -f 002_multi_tenant.sql
+   psql -h <host> -U postgres -d postgres -f 20260212101500_multi_tenant.sql
    ```
 
 **Database credentials:**
@@ -123,15 +123,15 @@ After applying the migration:
 ## Files Created/Modified
 
 ### New Files:
-- `/tmp/claw-ui/supabase/migrations/002_multi_tenant.sql` - Database migration
-- `/tmp/claw-ui/src/pages/RegisterPage.tsx` - Registration page component
-- `/tmp/claw-ui/MIGRATION_GUIDE.md` - Detailed migration instructions
-- `/tmp/claw-ui/check-migration-status.js` - Migration verification script
-- `/tmp/claw-ui/PHASE1_SUMMARY.md` - This file
+- `supabase/migrations/20260212101500_multi_tenant.sql` - Database migration
+- `src/pages/RegisterPage.tsx` - Registration page component
+- `MIGRATION_GUIDE.md` - Detailed migration instructions
+- `check-migration-status.js` - Migration verification script
+- `PHASE1_SUMMARY.md` - This file
 
 ### Modified Files:
-- `/tmp/claw-ui/src/App.tsx` - Added /register route
-- `/tmp/claw-ui/src/pages/LoginPage.tsx` - Added link to registration
+- `src/App.tsx` - Added /register route
+- `src/pages/LoginPage.tsx` - Added link to registration
 
 ## Security Review
 

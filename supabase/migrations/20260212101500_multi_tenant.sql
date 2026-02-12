@@ -119,6 +119,26 @@ CREATE POLICY "Users can create their own shortcuts" ON shortcuts FOR INSERT TO 
 CREATE POLICY "Users can update their own shortcuts" ON shortcuts FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own shortcuts" ON shortcuts FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
+-- 5b. ANON POLICIES (permissive for local single-user mode backward compatibility)
+
+-- Agent Connections (anon)
+CREATE POLICY "Allow anon full access to agent_connections" ON agent_connections FOR ALL TO anon USING (true) WITH CHECK (true);
+
+-- Sessions (anon)
+CREATE POLICY "Allow anon full access to sessions" ON sessions FOR ALL TO anon USING (true) WITH CHECK (true);
+
+-- Messages (anon)
+CREATE POLICY "Allow anon full access to messages" ON messages FOR ALL TO anon USING (true) WITH CHECK (true);
+
+-- Interaction Events (anon)
+CREATE POLICY "Allow anon full access to interaction_events" ON interaction_events FOR ALL TO anon USING (true) WITH CHECK (true);
+
+-- User Preferences (anon)
+CREATE POLICY "Allow anon full access to user_preferences" ON user_preferences FOR ALL TO anon USING (true) WITH CHECK (true);
+
+-- Shortcuts (anon)
+CREATE POLICY "Allow anon full access to shortcuts" ON shortcuts FOR ALL TO anon USING (true) WITH CHECK (true);
+
 -- 6. AGENT TOKEN LIMIT FUNCTION
 CREATE OR REPLACE FUNCTION check_agent_token_limit()
 RETURNS TRIGGER AS $$

@@ -3,7 +3,7 @@
 ## What Was Done
 
 ### 1. Database Migration Created ✅
-- Created `/supabase/migrations/002_multi_tenant.sql`
+- Created `/supabase/migrations/20260212101500_multi_tenant.sql`
 - Adds `agent_tokens` table for OpenClaw plugin pairing
 - Adds `user_id` columns to all existing tables
 - Updates RLS policies for proper user isolation
@@ -40,7 +40,7 @@ The migration file has been created but needs to be applied to your Supabase dat
 1. Navigate to: https://supabasekong-skgkk080c44ow08gco8c08og.app.taylorelley.com
 2. Login with admin credentials (from Coolify env vars)
 3. Go to SQL Editor
-4. Copy the contents of `/tmp/claw-ui/supabase/migrations/002_multi_tenant.sql`
+4. Copy the contents of `supabase/migrations/20260212101500_multi_tenant.sql`
 5. Paste and run in SQL Editor
 6. Verify tables and policies were created
 
@@ -52,7 +52,7 @@ ssh root@<coolify-server>
 
 # Apply migration
 docker exec -i $(docker ps --filter "label=coolify.serviceName=supabase-db" --format "{{.Names}}" | head -1) \
-  psql -U postgres -d postgres < /path/to/002_multi_tenant.sql
+  psql -U postgres -d postgres < /path/to/20260212101500_multi_tenant.sql
 ```
 
 #### Option 3: Via psql (From Any Machine with psql)
@@ -64,7 +64,7 @@ docker exec -i $(docker ps --filter "label=coolify.serviceName=supabase-db" --fo
 # DB Port: 5432 (default)
 
 # Apply migration
-PGPASSWORD="$DB_PASSWORD" psql -h <host> -U postgres -d postgres -f supabase/migrations/002_multi_tenant.sql
+PGPASSWORD="$DB_PASSWORD" psql -h <host> -U postgres -d postgres -f supabase/migrations/20260212101500_multi_tenant.sql
 ```
 
 > **Note:** Never store database passwords in documentation or source code.
@@ -175,7 +175,7 @@ Phase 1 provides the foundation. Phase 2 will implement:
 4. Multi-agent session routing
 5. Agent status indicators
 
-## Troubleshobin
+## Troubleshooting
 
 ### Migration Fails
 

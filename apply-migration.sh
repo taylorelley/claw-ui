@@ -14,8 +14,15 @@ DB_NAME="${DB_NAME:-postgres}"
 DB_USER="${DB_USER:-postgres}"
 
 # Try to apply via Docker exec
-echo "Applying migration 002_multi_tenant.sql..."
-docker exec -i $(docker ps --filter "name=supabase-db" --format "{{.Names}}" | head -1) \
-  psql -U $DB_USER -d $DB_NAME < supabase/migrations/002_multi_tenant.sql
+echo "Applying migration 20260212101500_multi_tenant.sql..."
+export PGPASSWORD="$DB_PASSWORD"
 
-echo "Migration applied!"
+docker exec -i $(docker ps --filter "name=supabase-db" --format "{{.Names}}" | head -1) \
+  psql -U "$DB_USER" -d "$DB_NAME" < supabase/migrations/20260212101500_multi_tenant.sql
+
+if [ $? -eq 0 ]; then
+  echo "Migration applied!"
+else
+  echo "Error: Migration failed. Check the output above for details."
+  exit 1
+fi

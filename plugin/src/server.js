@@ -126,8 +126,9 @@ class ClawUIServer {
 
         if (tokenValid) {
           clientInfo.authenticated = true;
-          clientInfo.sessionId = msg.sessionId || `session-${clientInfo.id}`;
-          clientInfo.userId = msg.userId || `user-${clientInfo.id}`;
+          // Always generate server-side IDs to prevent session hijacking
+          clientInfo.sessionId = `session-${uuidv4()}`;
+          clientInfo.userId = `user-${uuidv4()}`;
 
           this.sessionClients.set(clientInfo.sessionId, ws);
           this.channel.registerSession(clientInfo.sessionId, clientInfo.userId, ws);
