@@ -18,6 +18,8 @@ export function SetupWizardPage() {
   const [error, setError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [configMode, setConfigMode] = useState<'agent' | 'manual'>('agent');
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
 
   const steps: Step[] = ['name', 'generate', 'install', 'configure', 'verify'];
   const stepIndex = steps.indexOf(currentStep);
@@ -278,28 +280,96 @@ export function SetupWizardPage() {
         );
 
       case 'configure':
+        const agentPrompt = `Install and configure the claw-ui plugin for me with these settings:
+
+- Token ID: ${tokenId}
+- Token Secret: ${generatedToken}
+- Relay URL: ${RELAY_URL}
+
+Steps:
+1. Run: npm install -g @taylorelley/claw-ui-plugin
+2. Add the plugin to my OpenClaw config with mode: cloud
+3. Set the CLAW_UI_TOKEN environment variable
+4. Restart the gateway
+
+Please complete all steps and confirm when done.`;
+
         return (
           <div className="space-y-4">
             <h2 className="text-2xl font-semibold text-foreground">Configure OpenClaw</h2>
             <p className="text-foreground/60">
-              Add the following configuration to your OpenClaw config file.
+              Choose how you'd like to configure your OpenClaw instance.
             </p>
 
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm font-medium text-foreground/80 mb-2">
-                  1. Set your pairing token as an environment variable:
-                </p>
-                <code className="block px-4 py-3 rounded-lg bg-surface-2 text-foreground font-mono text-sm break-all">
-                  export CLAW_UI_TOKEN="{generatedToken}"
-                </code>
-              </div>
+            {/* Tab selector */}
+            <div className="flex gap-2 p-1 bg-surface-1 rounded-lg">
+              <button
+                onClick={() => setConfigMode('agent')}
+                className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  configMode === 'agent'
+                    ? 'bg-accent text-white'
+                    : 'text-foreground/60 hover:text-foreground'
+                }`}
+              >
+                🤖 Let OpenClaw Do It
+              </button>
+              <button
+                onClick={() => setConfigMode('manual')}
+                className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  configMode === 'manual'
+                    ? 'bg-accent text-white'
+                    : 'text-foreground/60 hover:text-foreground'
+                }`}
+              >
+                ⚙️ Manual Setup
+              </button>
+            </div>
 
-              <div>
-                <p className="text-sm font-medium text-foreground/80 mb-2">
-                  2. Add this to your OpenClaw config (usually <code className="text-accent">~/.openclaw/config.yaml</code>):
+            {configMode === 'agent' ? (
+              <div className="space-y-3">
+                <p className="text-sm text-foreground/70">
+                  Copy this prompt and send it to your OpenClaw agent. It will handle the installation and configuration for you.
                 </p>
-                <pre className="px-4 py-3 rounded-lg bg-surface-2 text-foreground font-mono text-sm overflow-x-auto">
+                <div className="relative">
+                  <pre className="px-4 py-3 pr-12 rounded-lg bg-surface-2 text-foreground font-mono text-sm overflow-x-auto whitespace-pre-wrap">
+                    {agentPrompt}
+                  </pre>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(agentPrompt);
+                      setCopiedPrompt(true);
+                      setTimeout(() => setCopiedPrompt(false), 2000);
+                    }}
+                    className="absolute top-2 right-2 p-2 rounded-md bg-surface-1 hover:bg-surface-2 transition-colors"
+                    title="Copy prompt"
+                  >
+                    {copiedPrompt ? (
+                      <Check className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <Copy className="w-4 h-4 text-foreground/60" />
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-foreground/50">
+                  Your agent will install the plugin and configure everything automatically.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-foreground/80 mb-2">
+                    1. Set your pairing token as an environment variable:
+                  </p>
+                  <code className="block px-4 py-3 rounded-lg bg-surface-2 text-foreground font-mono text-sm break-all">
+                    export CLAW_UI_TOKEN="{generatedToken}"
+                  </code>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-foreground/80 mb-2">
+                    2. Add this to your OpenClaw config (usually <code className="text-accent">~/.openclaw/config.yaml</code>):
+                  </p>
+                  <pre className="px-4 py-3 rounded-lg bg-surface-2 text-foreground font-mono text-sm overflow-x-auto">
 {`# Load the claw-ui plugin
 plugins:
   load:
@@ -314,18 +384,19 @@ channels:
     relayUrl: ${RELAY_URL}
     tokenId: "${tokenId || 'your-token-id'}"
     # Token secret is read from CLAW_UI_TOKEN env var`}
-                </pre>
-              </div>
+                  </pre>
+                </div>
 
-              <div>
-                <p className="text-sm font-medium text-foreground/80 mb-2">
-                  3. Restart OpenClaw:
-                </p>
-                <code className="block px-4 py-3 rounded-lg bg-surface-2 text-foreground font-mono text-sm">
-                  openclaw restart
-                </code>
+                <div>
+                  <p className="text-sm font-medium text-foreground/80 mb-2">
+                    3. Restart OpenClaw:
+                  </p>
+                  <code className="block px-4 py-3 rounded-lg bg-surface-2 text-foreground font-mono text-sm">
+                    openclaw gateway restart
+                  </code>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="flex gap-2">
               <button
