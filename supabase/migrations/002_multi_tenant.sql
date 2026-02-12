@@ -11,9 +11,14 @@ CREATE TABLE IF NOT EXISTS agent_tokens (
   token_hash TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   last_connected_at TIMESTAMPTZ,
-  revoked_at TIMESTAMPTZ,
-  UNIQUE(user_id, name)
+  revoked_at TIMESTAMPTZ
 );
+
+-- Unique constraint only for active (non-revoked) tokens
+-- This allows reusing names from revoked agents
+CREATE UNIQUE INDEX IF NOT EXISTS agent_tokens_active_name_unique 
+ON agent_tokens(user_id, name) 
+WHERE revoked_at IS NULL;
 
 CREATE INDEX IF NOT EXISTS idx_agent_tokens_user_id ON agent_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_agent_tokens_hash ON agent_tokens(token_hash) WHERE revoked_at IS NULL;
