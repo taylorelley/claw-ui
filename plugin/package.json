@@ -1,40 +1,48 @@
 {
   "name": "@taylorelley/claw-ui-plugin",
   "version": "1.0.0",
-  "description": "OpenClaw channel plugin for claw-ui web interface",
-  "main": "index.js",
-  "type": "commonjs",
+  "description": "Web chat interface channel plugin for OpenClaw",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "files": [
+    "dist",
+    "openclaw.plugin.json"
+  ],
   "keywords": [
     "openclaw",
     "plugin",
     "channel",
-    "claw-ui",
-    "websocket",
+    "web",
     "chat"
   ],
   "author": "Taylor Elley",
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/taylorelley/claw-ui.git",
-    "directory": "plugin"
+  "peerDependencies": {
+    "openclaw": ">=2026.0.0"
   },
-  "bugs": {
-    "url": "https://github.com/taylorelley/claw-ui/issues"
-  },
-  "homepage": "https://github.com/taylorelley/claw-ui#readme",
-  "files": [
-    "index.js",
-    "src/",
-    "openclaw.plugin.json",
-    "README.md"
-  ],
   "dependencies": {
-    "express": "^4.18.2",
-    "ws": "^8.16.0",
-    "uuid": "^9.0.0"
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.0",
+    "typescript": "^5.0.0"
+  },
+  "openclaw": {
+    "extensions": ["dist/index.js"]
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/taylorelley/claw-ui.git",
+    "directory": "plugin"
   }
 }
