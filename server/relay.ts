@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { WebSocket } from 'ws';
 import {
   AgentConnection,

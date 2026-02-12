@@ -58,14 +58,18 @@ docker exec -i $(docker ps --filter "label=coolify.serviceName=supabase-db" --fo
 #### Option 3: Via psql (From Any Machine with psql)
 
 ```bash
-# Get DB connection details from Coolify
-# DB Password: twiH44Zp48DeDxcZqWs1OrqXwGGhG5u4
+# Get DB connection details from Coolify secrets or your secrets manager
+# DB Password: <DB_PASSWORD> (retrieve from Coolify secrets or environment variable)
 # DB Host: supabase-db (or localhost if port-forwarded)
 # DB Port: 5432 (default)
 
 # Apply migration
-psql -h <host> -U postgres -d postgres -f supabase/migrations/002_multi_tenant.sql
+PGPASSWORD="$DB_PASSWORD" psql -h <host> -U postgres -d postgres -f supabase/migrations/002_multi_tenant.sql
 ```
+
+> **Note:** Never store database passwords in documentation or source code.
+> Retrieve credentials from Coolify secrets, environment variables, or your secrets manager.
+> If this password was previously exposed in a commit, rotate it immediately.
 
 ### Verify Migration
 
@@ -109,8 +113,8 @@ Ensure email verification is enabled:
 For production deployment, you'll need to set Supabase connection details in the claw-ui environment:
 
 ```env
-VITE_SUPABASE_URL=https://supabasekong-skgkk080c44ow08gco8c08og.app.taylorelley.com
-VITE_SUPABASE_ANON_KEY=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc3MDUwMzIyMCwiZXhwIjo0OTI2MTc2ODIwLCJyb2xlIjoiYW5vbiJ9.-p_KYs8IGMGxhuhNTQcZf2KOhyCHziqwv0PA-oDYbMY
+VITE_SUPABASE_URL=<your-supabase-url>
+VITE_SUPABASE_ANON_KEY=<your-supabase-anon-key>
 ```
 
 ## Security Considerations

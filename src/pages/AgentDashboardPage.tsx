@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Bot, Plus, Search, Wifi, WifiOff, Trash2, AlertCircle, 
@@ -34,24 +34,25 @@ export function AgentDashboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAgents, setSelectedAgents] = useState<Set<string>>(new Set());
   const [selectedAgent, setSelectedAgent] = useState<AgentWithStatus | null>(null);
+  const agentsRef = useRef<AgentWithStatus[]>(agents);
 
   useEffect(() => {
     loadAgents();
-    
+
     // Poll for status updates every 10 seconds
     const interval = setInterval(() => {
       updateAgentStatuses();
     }, 10000);
-    
+
     return () => clearInterval(interval);
   }, []);
 
   const loadAgents = async () => {
     setLoading(true);
-    
+
     try {
       const tokens = await listAgentTokens();
-      
+
       // Load status for each token
       const agentsWithStatus = await Promise.all(
         tokens.map(async (token) => {
@@ -63,10 +64,10 @@ export function AgentDashboardPage() {
           };
         })
       );
-      
+
+      agentsRef.current = agentsWithStatus;
       setAgents(agentsWithStatus);
-    } catch (err) {
-      console.error('Failed to load agents:', err);
+    } catch {
       showError('Failed to load agents');
     } finally {
       setLoading(false);
@@ -74,19 +75,21 @@ export function AgentDashboardPage() {
   };
 
   const updateAgentStatuses = async () => {
-    if (agents.length === 0) return;
-    
+    const currentAgents = agentsRef.current;
+    if (currentAgents.length === 0) return;
+
     try {
       const updatedAgents = await Promise.all(
-        agents.map(async (agent) => {
+        currentAgents.map(async (agent) => {
           const status = await getAgentStatus(agent.id);
           return { ...agent, status };
         })
       );
-      
+
+      agentsRef.current = updatedAgents;
       setAgents(updatedAgents);
-    } catch (err) {
-      console.error('Failed to update statuses:', err);
+    } catch {
+      // Status update failed silently; will retry on next interval
     }
   };
 
@@ -96,7 +99,7 @@ export function AgentDashboardPage() {
       success('Agent revoked successfully');
       await loadAgents();
       setSelectedAgent(null);
-    } catch (err) {
+    } catch {
       showError('Failed to revoke agent');
     }
   };
@@ -109,7 +112,7 @@ export function AgentDashboardPage() {
       success(`Revoked ${selectedAgents.size} agent(s)`);
       setSelectedAgents(new Set());
       await loadAgents();
-    } catch (err) {
+    } catch {
       showError('Failed to revoke agents');
     }
   };
@@ -122,7 +125,7 @@ export function AgentDashboardPage() {
       } else {
         showError(`${agent.name} is offline`);
       }
-    } catch (err) {
+    } catch {
       showError('Connection test failed');
     }
   };

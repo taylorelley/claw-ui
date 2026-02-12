@@ -13,8 +13,20 @@
  *   - Or update the constants below
  */
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://supabasekong-skgkk080c44ow08gco8c08og.app.taylorelley.com';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc3MDUwMzIyMCwiZXhwIjo0OTI2MTc2ODIwLCJyb2xlIjoic2VydmljZV9yb2xlIn0.4znsum0rxFI9MczMkT9NbGTinyToWytomdN2lKVuuRs';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+if (!SUPABASE_SERVICE_KEY) {
+  console.error('Error: SUPABASE_SERVICE_KEY environment variable is required.');
+  console.error('Set it before running this script. See .env.example for details.');
+  process.exit(1);
+}
+
+if (!SUPABASE_URL) {
+  console.error('Error: SUPABASE_URL environment variable is required.');
+  console.error('Set it before running this script. See .env.example for details.');
+  process.exit(1);
+}
 
 async function checkMigration() {
   console.log('🔍 Checking migration status...\n');
@@ -90,20 +102,9 @@ async function checkMigration() {
       });
 
       if (!response.ok) {
-        // Try alternative method using PostgREST directly
-        const altResponse = await fetch(`${SUPABASE_URL}/rest/v1/?select=*`, {
-          method: 'GET',
-          headers: {
-            'apikey': SUPABASE_SERVICE_KEY,
-            'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          },
-        });
-        
-        if (!altResponse.ok) {
-          console.log(`❌ ${check.name}: Unable to verify (API access issue)`);
-          allPassed = false;
-          continue;
-        }
+        console.log(`❌ ${check.name}: Unable to verify (API returned ${response.status})`);
+        allPassed = false;
+        continue;
       }
 
       const result = await response.json();

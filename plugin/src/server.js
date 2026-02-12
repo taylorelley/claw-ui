@@ -5,6 +5,7 @@
 
 const express = require('express');
 const http = require('http');
+const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
@@ -116,16 +117,21 @@ class ClawUIServer {
     const authToken = this.config.auth?.token;
 
     switch (msg.type) {
-      case 'auth':
-        // Authenticate with token
-        if (msg.token === authToken) {
+      case 'auth': {
+        // Authenticate with token using constant-time comparison
+        const tokenValid = typeof msg.token === 'string' &&
+          typeof authToken === 'string' &&
+          msg.token.length === authToken.length &&
+          crypto.timingSafeEqual(Buffer.from(msg.token), Buffer.from(authToken));
+
+        if (tokenValid) {
           clientInfo.authenticated = true;
           clientInfo.sessionId = msg.sessionId || `session-${clientInfo.id}`;
           clientInfo.userId = msg.userId || `user-${clientInfo.id}`;
-          
+
           this.sessionClients.set(clientInfo.sessionId, ws);
           this.channel.registerSession(clientInfo.sessionId, clientInfo.userId, ws);
-          
+
           ws.send(JSON.stringify({ type: 'auth_ok', sessionId: clientInfo.sessionId }));
           console.log(`[claw-ui] Client authenticated: ${clientInfo.sessionId}`);
         } else {
@@ -133,6 +139,7 @@ class ClawUIServer {
           console.log('[claw-ui] Authentication failed');
         }
         break;
+      }
 
       case 'message':
         if (!clientInfo.authenticated) {

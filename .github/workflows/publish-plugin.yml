@@ -43,7 +43,9 @@ jobs:
       - name: Update version from input
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''
         working-directory: ./plugin
-        run: npm version ${{ github.event.inputs.version }} --no-git-tag-version --allow-same-version
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+        run: npm version "$VERSION" --no-git-tag-version --allow-same-version
 
       - name: Publish to GitHub Packages
         working-directory: ./plugin
