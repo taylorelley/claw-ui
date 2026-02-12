@@ -312,7 +312,7 @@ channels:
     enabled: true
     mode: cloud
     relayUrl: ${RELAY_URL}
-    tokenId: "${currentAgent?.id || 'your-token-id'}"
+    tokenId: "${tokenId || 'your-token-id'}"
     # Token secret is read from CLAW_UI_TOKEN env var`}
                 </pre>
               </div>
