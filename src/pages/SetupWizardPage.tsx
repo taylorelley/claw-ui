@@ -5,7 +5,7 @@ import { createAgentToken, getAgentStatus } from '../services/agentTokenService'
 
 type Step = 'name' | 'generate' | 'configure' | 'verify';
 
-const RELAY_URL = 'wss://claw-ui.app.taylorelley.com/relay';
+const RELAY_URL = import.meta.env.VITE_RELAY_URL || 'wss://claw-ui-relay-dev.app.taylorelley.com/relay';
 
 export function SetupWizardPage() {
   const navigate = useNavigate();
