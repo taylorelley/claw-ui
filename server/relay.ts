@@ -181,9 +181,9 @@ export class RelayServer {
    */
   private async authenticateAgent(
     ws: WebSocket,
-    message: { tokenId: string; signature: string }
+    message: { tokenId: string; signature: string; timestamp: number }
   ): Promise<AgentConnection | null> {
-    const payload = message.tokenId;
+    const payload = `${message.tokenId}:${message.timestamp}`;
     const result = await verifyAgentToken(message.tokenId, message.signature, payload);
 
     if (!result.valid || !result.token) {
