@@ -3,47 +3,14 @@
   "name": "Claw UI",
   "version": "1.0.0",
   "description": "Web chat interface channel for OpenClaw",
-  "entry": "dist/index.js",
-  "provides": {
-    "channels": ["claw-ui"]
-  },
+  
+  "channels": ["claw-ui"],
+  
   "configSchema": {
     "type": "object",
-    "properties": {
-      "enabled": { 
-        "type": "boolean", 
-        "default": true 
-      },
-      "mode": { 
-        "type": "string", 
-        "enum": ["local", "cloud"], 
-        "default": "cloud" 
-      },
-      "port": { 
-        "type": "number", 
-        "description": "Port for local mode WebSocket server" 
-      },
-      "relayUrl": { 
-        "type": "string", 
-        "description": "WebSocket URL for cloud relay" 
-      },
-      "tokenId": { 
-        "type": "string", 
-        "description": "Token ID for cloud authentication" 
-      },
-      "accounts": {
-        "type": "object",
-        "description": "Multi-account configuration",
-        "additionalProperties": {
-          "type": "object",
-          "properties": {
-            "enabled": { "type": "boolean" },
-            "mode": { "type": "string", "enum": ["local", "cloud"] },
-            "relayUrl": { "type": "string" },
-            "tokenId": { "type": "string" }
-          }
-        }
-      }
-    }
-  }
+    "additionalProperties": false,
+    "properties": {}
+  },
+  
+  "uiHints": {}
 }

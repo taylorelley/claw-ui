@@ -1,19 +1,30 @@
 /**
  * Runtime access for claw-ui plugin
- * Follows the getTelegramRuntime() pattern from standard channels
+ * 
+ * Follows the standard pattern used by official channels:
+ * - telegram: getTelegramRuntime()
+ * - discord: getDiscordRuntime()
+ * - etc.
  */
 
-import type { OpenClawRuntime } from "openclaw/plugin-sdk";
+import type { PluginRuntime } from "openclaw/plugin-sdk";
 
-let runtime: OpenClawRuntime | null = null;
+let runtime: PluginRuntime | null = null;
 
-export function setClawUIRuntime(r: OpenClawRuntime) {
+/**
+ * Set the runtime reference (called from plugin register)
+ */
+export function setClawUIRuntime(r: PluginRuntime): void {
   runtime = r;
 }
 
-export function getClawUIRuntime(): OpenClawRuntime {
+/**
+ * Get the runtime reference
+ * Throws if called before plugin registration
+ */
+export function getClawUIRuntime(): PluginRuntime {
   if (!runtime) {
-    throw new Error("claw-ui runtime not initialized");
+    throw new Error("claw-ui runtime not initialized - plugin not registered");
   }
   return runtime;
 }
