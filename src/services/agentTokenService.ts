@@ -1,25 +1,28 @@
 import { supabase } from '../lib/supabase';
-import { generateToken, hashToken } from '../lib/tokens';
+import { generateTokenSecret, generateTokenId } from '../lib/tokens';
 
 export interface AgentToken {
   id: string;
+  token_id: string;
   user_id: string;
   name: string;
-  token_hash: string;
+  token_secret: string;
   created_at: string;
   last_used_at: string | null;
   revoked_at: string | null;
+  expires_at: string | null;
 }
 
 export interface CreateTokenResult {
   token: AgentToken;
-  plainToken: string; // Only returned once!
+  tokenId: string; // UUID for identification
+  tokenSecret: string; // Secret for HMAC signing (only returned once!)
 }
 
 /**
- * Create a new agent token
+ * Create a new agent token with HMAC credentials
  * @param name - Friendly name for the agent (e.g., "Home Server")
- * @returns The token record and the plain token (shown only once)
+ * @returns The token record, token ID, and token secret (secret shown only once)
  */
 export async function createAgentToken(name: string): Promise<CreateTokenResult> {
   // Get current user
@@ -29,17 +32,19 @@ export async function createAgentToken(name: string): Promise<CreateTokenResult>
     throw new Error('Not authenticated');
   }
 
-  // Generate token and hash
-  const plainToken = generateToken();
-  const tokenHash = await hashToken(plainToken);
+  // Generate token ID (UUID) and secret (for HMAC)
+  const tokenId = generateTokenId();
+  const tokenSecret = generateTokenSecret();
 
   // Insert into database
   const { data, error } = await supabase
     .from('agent_tokens')
     .insert({
+      token_id: tokenId,
       user_id: user.id,
       name,
-      token_hash: tokenHash,
+      token_secret: tokenSecret,
+      expires_at: null, // Never expires by default
     })
     .select()
     .single();
@@ -51,7 +56,8 @@ export async function createAgentToken(name: string): Promise<CreateTokenResult>
 
   return {
     token: data,
-    plainToken,
+    tokenId,
+    tokenSecret,
   };
 }
 
@@ -92,16 +98,16 @@ export async function revokeAgentToken(id: string): Promise<void> {
 
 /**
  * Get agent connection status
- * @param tokenId - The token ID to check
+ * @param id - The database ID (not token_id) to check
  * @returns Connection status (placeholder - will be implemented with relay)
  */
-export async function getAgentStatus(tokenId: string): Promise<'online' | 'offline'> {
+export async function getAgentStatus(id: string): Promise<'online' | 'offline'> {
   // TODO: Implement real-time status check via relay
   // For now, check last_used_at timestamp
   const { data, error } = await supabase
     .from('agent_tokens')
     .select('last_used_at')
-    .eq('id', tokenId)
+    .eq('id', id)
     .single();
 
   if (error || !data) {

@@ -11,9 +11,11 @@ export function SetupWizardPage() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<Step>('name');
   const [agentName, setAgentName] = useState('');
-  const [generatedToken, setGeneratedToken] = useState<string | null>(null);
   const [tokenId, setTokenId] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [tokenSecret, setTokenSecret] = useState<string | null>(null);
+  const [dbId, setDbId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState(false);
+  const [copiedSecret, setCopiedSecret] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
@@ -26,11 +28,11 @@ export function SetupWizardPage() {
 
   // Auto-check connection status on verify step
   useEffect(() => {
-    if (currentStep === 'verify' && tokenId && !isConnected) {
+    if (currentStep === 'verify' && dbId && !isConnected) {
       const checkConnection = async () => {
         setVerifying(true);
         try {
-          const status = await getAgentStatus(tokenId);
+          const status = await getAgentStatus(dbId);
           setIsConnected(status === 'online');
         } catch (err) {
           console.error('Failed to check connection:', err);
@@ -44,7 +46,7 @@ export function SetupWizardPage() {
       
       return () => clearInterval(interval);
     }
-  }, [currentStep, tokenId, isConnected]);
+  }, [currentStep, dbId, isConnected]);
 
   const handleGenerateToken = async () => {
     if (!agentName.trim()) {
@@ -57,8 +59,9 @@ export function SetupWizardPage() {
 
     try {
       const result = await createAgentToken(agentName);
-      setGeneratedToken(result.plainToken);
-      setTokenId(result.token.id);
+      setTokenId(result.tokenId);
+      setTokenSecret(result.tokenSecret);
+      setDbId(result.token.id);
       setCurrentStep('generate');
     } catch (err) {
       console.error('Failed to create token:', err);
@@ -68,11 +71,19 @@ export function SetupWizardPage() {
     }
   };
 
-  const handleCopyToken = async () => {
-    if (generatedToken) {
-      await navigator.clipboard.writeText(generatedToken);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+  const handleCopyTokenId = async () => {
+    if (tokenId) {
+      await navigator.clipboard.writeText(tokenId);
+      setCopiedId(true);
+      setTimeout(() => setCopiedId(false), 2000);
+    }
+  };
+
+  const handleCopyTokenSecret = async () => {
+    if (tokenSecret) {
+      await navigator.clipboard.writeText(tokenSecret);
+      setCopiedSecret(true);
+      setTimeout(() => setCopiedSecret(false), 2000);
     }
   };
 
@@ -175,16 +186,16 @@ export function SetupWizardPage() {
       case 'generate':
         return (
           <div className="space-y-4">
-            <h2 className="text-2xl font-semibold text-foreground">Your Pairing Token</h2>
+            <h2 className="text-2xl font-semibold text-foreground">Your Agent Credentials</h2>
             
             <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
               <div className="flex items-start gap-2 mb-2">
                 <AlertCircle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-medium text-yellow-500">Important: Save this token now!</p>
+                  <p className="font-medium text-yellow-500">Important: Save these credentials now!</p>
                   <p className="text-sm text-yellow-500/80 mt-1">
-                    This token will only be shown once for security reasons. 
-                    Copy it now before proceeding.
+                    The token secret will only be shown once for security reasons. 
+                    Copy both values now before proceeding.
                   </p>
                 </div>
               </div>
@@ -192,17 +203,44 @@ export function SetupWizardPage() {
 
             <div className="space-y-2">
               <label className="block text-sm font-medium text-foreground/80">
-                Pairing Token
+                Token ID
               </label>
               <div className="flex gap-2">
                 <code className="flex-1 px-4 py-3 rounded-lg bg-surface-2 border border-border text-foreground font-mono text-sm break-all">
-                  {generatedToken}
+                  {tokenId}
                 </code>
                 <button
-                  onClick={handleCopyToken}
+                  onClick={handleCopyTokenId}
                   className="px-4 py-2 rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors flex items-center gap-2"
                 >
-                  {copied ? (
+                  {copiedId ? (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      Copy
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-foreground/80">
+                Token Secret
+              </label>
+              <div className="flex gap-2">
+                <code className="flex-1 px-4 py-3 rounded-lg bg-surface-2 border border-border text-foreground font-mono text-sm break-all">
+                  {tokenSecret}
+                </code>
+                <button
+                  onClick={handleCopyTokenSecret}
+                  className="px-4 py-2 rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors flex items-center gap-2"
+                >
+                  {copiedSecret ? (
                     <>
                       <CheckCircle className="w-4 h-4" />
                       Copied!
@@ -221,7 +259,7 @@ export function SetupWizardPage() {
               onClick={handleNext}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-accent text-white font-medium hover:bg-accent/90 transition-colors"
             >
-              I've Saved the Token
+              I've Saved Both Credentials
               <ChevronRight className="w-4 h-4" />
             </button>
 
@@ -239,7 +277,7 @@ export function SetupWizardPage() {
         const agentPrompt = `Install and configure the claw-ui plugin for me with these settings:
 
 - Token ID: ${tokenId}
-- Token Secret: ${generatedToken}
+- Token Secret: ${tokenSecret}
 - Relay URL: ${RELAY_URL}
 
 Steps:
@@ -332,10 +370,10 @@ Please complete all steps and confirm when done.`;
 
                 <div>
                   <p className="text-sm font-medium text-foreground/80 mb-2">
-                    3. Set your pairing token as an environment variable:
+                    3. Set your token secret as an environment variable:
                   </p>
                   <code className="block px-4 py-3 rounded-lg bg-surface-2 text-foreground font-mono text-sm break-all">
-                    export CLAW_UI_TOKEN="{generatedToken}"
+                    export CLAW_UI_TOKEN_SECRET="{tokenSecret}"
                   </code>
                 </div>
 
@@ -344,20 +382,15 @@ Please complete all steps and confirm when done.`;
                     4. Add this to your OpenClaw config (usually <code className="text-accent">~/.openclaw/config.yaml</code>):
                   </p>
                   <pre className="px-4 py-3 rounded-lg bg-surface-2 text-foreground font-mono text-sm overflow-x-auto">
-{`# Load the claw-ui plugin
-plugins:
-  load:
-    paths:
-      - /usr/lib/node_modules/@taylorelley/claw-ui-plugin
-
-# Configure the channel
+{`# Configure the channel
 channels:
   claw-ui:
     enabled: true
     mode: cloud
     relayUrl: ${RELAY_URL}
     tokenId: "${tokenId || 'your-token-id'}"
-    # Token secret is read from CLAW_UI_TOKEN env var`}
+    tokenSecret: "${tokenSecret || 'your-token-secret'}"
+    # Or use environment variable: CLAW_UI_TOKEN_SECRET`}
                   </pre>
                 </div>
 

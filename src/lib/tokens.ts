@@ -1,10 +1,8 @@
-import bcrypt from 'bcryptjs';
-
 /**
- * Generate a cryptographically random 256-bit token
+ * Generate a cryptographically random token secret for HMAC
  * Returns a base64-encoded string (43 characters)
  */
-export function generateToken(): string {
+export function generateTokenSecret(): string {
   // Generate 32 random bytes (256 bits)
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
@@ -17,21 +15,9 @@ export function generateToken(): string {
 }
 
 /**
- * Hash a token using bcrypt
- * @param token - The plain token to hash
- * @returns Promise resolving to the bcrypt hash
+ * Generate a UUID v4 for token ID
+ * @returns A UUID string
  */
-export async function hashToken(token: string): Promise<string> {
-  const saltRounds = 10;
-  return bcrypt.hash(token, saltRounds);
-}
-
-/**
- * Verify a token against a hash
- * @param token - The plain token to verify
- * @param hash - The bcrypt hash to compare against
- * @returns Promise resolving to true if match, false otherwise
- */
-export async function verifyToken(token: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(token, hash);
+export function generateTokenId(): string {
+  return crypto.randomUUID();
 }
