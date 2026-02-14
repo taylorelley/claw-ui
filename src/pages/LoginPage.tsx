@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LogIn, Loader2, AlertCircle } from 'lucide-react';
 
@@ -110,6 +110,15 @@ export function LoginPage() {
               </>
             )}
           </button>
+
+          <div className="text-center pt-4 border-t border-border">
+            <p className="text-sm text-foreground/60">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-accent hover:text-accent/80 font-medium transition-colors">
+                Create one
+              </Link>
+            </p>
+          </div>
         </form>
       </div>
     </div>
