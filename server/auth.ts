@@ -39,11 +39,12 @@ export async function verifyAgentToken(
   }
 
   try {
-    // Fetch token from database
+    // Fetch token from database by token_id (UUID), not database id
     const { data: token, error } = await supabase
       .from('agent_tokens')
       .select('*')
-      .eq('id', tokenId)
+      .eq('token_id', tokenId)
+      .is('revoked_at', null)
       .single();
 
     if (error || !token) {
