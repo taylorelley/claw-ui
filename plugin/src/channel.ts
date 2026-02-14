@@ -215,7 +215,7 @@ const configAdapter: ChannelConfigAdapter<ResolvedClawUIAccount> = {
     accountId: account.accountId,
     name: account.name,
     enabled: account.enabled,
-    configured: account.config.mode === "local" || Boolean(account.config.tokenId),
+    configured: account.config.mode === "local" || Boolean(account.config.tokenId && account.config.tokenSecret),
     tokenSource: account.tokenSource,
   }),
 };
@@ -225,7 +225,7 @@ const configAdapter: ChannelConfigAdapter<ResolvedClawUIAccount> = {
 // ============================================================================
 
 const securityAdapter: ChannelSecurityAdapter<ResolvedClawUIAccount> = {
-  resolveDmPolicy: ({ account }) => ({
+  resolveDmPolicy: ({ account: _account }) => ({
     policy: "open" as const, // Web UI handles its own auth via tokens
     configPath: `channels.claw-ui`,
   }),
@@ -312,39 +312,48 @@ const gatewayAdapter: ChannelGatewayAdapter<ResolvedClawUIAccount> = {
    * Called by OpenClaw gateway when starting channels
    */
   startAccount: async (ctx) => {
-    const { account, cfg, runtime, abortSignal, log } = ctx;
+    const { account, abortSignal, log } = ctx;
     const accountId = account.accountId;
-    
+
     log?.info?.(`[${accountId}] starting claw-ui channel`);
-    
+
     // Local mode: WebSocket server (not implemented)
     if (account.config.mode === "local") {
       log?.info?.(`[${accountId}] local mode not yet implemented`);
       return;
     }
-    
+
     // Cloud mode: connect to relay
     const relayUrl = account.config.relayUrl;
     const tokenId = account.config.tokenId;
     const tokenSecret = account.config.tokenSecret;
-    
+
     if (!relayUrl || !tokenId || !tokenSecret) {
       log?.error?.(`[${accountId}] missing relay credentials (relayUrl, tokenId, tokenSecret)`);
       return;
     }
-    
+
     log?.info?.(`[${accountId}] connecting to relay: ${relayUrl}`);
-    
+
+    const pluginRuntime = getClawUIRuntime();
+
     // Create cloud client
     const client = new CloudClient({
       relayUrl,
       tokenId,
       tokenSecret,
       accountId,
-      runtime: getClawUIRuntime(),
-      onMessage: async (senderId, message) => {
-        // Inbound messages will be routed through OpenClaw's standard flow
+      runtime: pluginRuntime,
+      onMessage: async (senderId, _message) => {
         log?.debug?.(`[${accountId}] received message from ${senderId}`);
+        // Forward inbound messages through OpenClaw's standard flow
+        if (pluginRuntime && typeof (pluginRuntime as Record<string, unknown>).handleInboundMessage === "function") {
+          try {
+            await ((pluginRuntime as Record<string, Function>).handleInboundMessage(senderId, accountId, _message));
+          } catch (err) {
+            log?.error?.(`[${accountId}] error forwarding inbound message: ${err}`);
+          }
+        }
       },
     });
     

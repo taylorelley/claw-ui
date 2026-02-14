@@ -18,17 +18,75 @@ import { checkRateLimit } from './rateLimit.js';
 
 const MESSAGE_SIZE_LIMIT = 64 * 1024; // 64KB
 const CONNECTION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+const NONCE_VALIDITY_MS = 5 * 60 * 1000; // 5 minutes
 
-// Track nonces to prevent replay attacks
-const usedNonces = new Set<string>();
+// Track nonces to prevent replay attacks (nonce -> timestamp)
+const usedNonces = new Map<string, number>();
 const MAX_NONCE_CACHE_SIZE = 10000;
 
-// Cleanup old nonces periodically
+// Cleanup expired nonces periodically
 setInterval(() => {
-  if (usedNonces.size > MAX_NONCE_CACHE_SIZE) {
-    usedNonces.clear();
+  const now = Date.now();
+  for (const [nonce, timestamp] of usedNonces) {
+    if (now - timestamp > NONCE_VALIDITY_MS) {
+      usedNonces.delete(nonce);
+    }
   }
-}, 10 * 60 * 1000);
+  // If still over limit after expiry cleanup, prune oldest entries
+  if (usedNonces.size > MAX_NONCE_CACHE_SIZE) {
+    const entries = [...usedNonces.entries()].sort((a, b) => a[1] - b[1]);
+    const toRemove = entries.slice(0, usedNonces.size - MAX_NONCE_CACHE_SIZE);
+    for (const [nonce] of toRemove) {
+      usedNonces.delete(nonce);
+    }
+  }
+}, 60 * 1000);
+
+/**
+ * Type guard for AgentIncomingMessage
+ */
+function isAgentIncomingMessage(obj: unknown): obj is AgentIncomingMessage {
+  if (typeof obj !== 'object' || obj === null) return false;
+  const msg = obj as Record<string, unknown>;
+  if (typeof msg.type !== 'string') return false;
+
+  switch (msg.type) {
+    case 'auth':
+      return typeof msg.tokenId === 'string' && typeof msg.signature === 'string';
+    case 'heartbeat':
+      return true;
+    case 'message':
+      return (
+        typeof msg.sessionId === 'string' &&
+        typeof msg.content === 'string' &&
+        typeof msg.nonce === 'string' &&
+        typeof msg.signature === 'string' &&
+        typeof msg.timestamp === 'number'
+      );
+    default:
+      return false;
+  }
+}
+
+/**
+ * Type guard for ClientIncomingMessage
+ */
+function isClientIncomingMessage(obj: unknown): obj is ClientIncomingMessage {
+  if (typeof obj !== 'object' || obj === null) return false;
+  const msg = obj as Record<string, unknown>;
+  if (typeof msg.type !== 'string') return false;
+
+  switch (msg.type) {
+    case 'auth':
+      return typeof msg.jwt === 'string' && typeof msg.agentId === 'string';
+    case 'ping':
+      return true;
+    case 'message':
+      return typeof msg.content === 'string';
+    default:
+      return false;
+  }
+}
 
 export class RelayServer {
   // Map: user_id -> Map<token_id, AgentConnection>
@@ -41,21 +99,43 @@ export class RelayServer {
   private connectionTimeouts = new Map<WebSocket, NodeJS.Timeout>();
 
   constructor() {
-    console.log('🚀 RelayServer initialized');
+    console.log('RelayServer initialized');
   }
 
   /**
    * Handle new agent connection
    */
   async handleAgentConnection(ws: WebSocket): Promise<void> {
-    console.log('🔵 New agent connection attempt');
+    console.log('New agent connection attempt');
 
     let authenticated = false;
     let agentConn: AgentConnection | null = null;
 
     ws.on('message', async (data: Buffer) => {
       try {
-        const message = JSON.parse(data.toString()) as AgentIncomingMessage;
+        // Enforce size limit before parsing
+        if (data.length > MESSAGE_SIZE_LIMIT) {
+          this.sendError(ws, 'Message too large');
+          ws.close(1009, 'Message too large');
+          return;
+        }
+
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(data.toString());
+        } catch {
+          this.sendError(ws, 'Invalid JSON');
+          ws.close(1003, 'Invalid JSON');
+          return;
+        }
+
+        if (!isAgentIncomingMessage(parsed)) {
+          this.sendError(ws, 'Invalid message format');
+          ws.close(1003, 'Invalid message format');
+          return;
+        }
+
+        const message = parsed;
 
         if (!authenticated) {
           if (message.type === 'auth') {
@@ -114,14 +194,36 @@ export class RelayServer {
    * Handle new client connection
    */
   async handleClientConnection(ws: WebSocket): Promise<void> {
-    console.log('🟢 New client connection attempt');
+    console.log('New client connection attempt');
 
     let authenticated = false;
     let clientConn: ClientConnection | null = null;
 
     ws.on('message', async (data: Buffer) => {
       try {
-        const message = JSON.parse(data.toString()) as ClientIncomingMessage;
+        // Enforce size limit before parsing
+        if (data.length > MESSAGE_SIZE_LIMIT) {
+          this.sendError(ws, 'Message too large');
+          ws.close(1009, 'Message too large');
+          return;
+        }
+
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(data.toString());
+        } catch {
+          this.sendError(ws, 'Invalid JSON');
+          ws.close(1003, 'Invalid JSON');
+          return;
+        }
+
+        if (!isClientIncomingMessage(parsed)) {
+          this.sendError(ws, 'Invalid message format');
+          ws.close(1003, 'Invalid message format');
+          return;
+        }
+
+        const message = parsed;
 
         if (!authenticated) {
           if (message.type === 'auth') {
@@ -217,7 +319,7 @@ export class RelayServer {
     this.notifyClientsOfAgentStatus(agentConn.userId, agentConn.tokenId, true);
 
     this.sendMessage(ws, { type: 'auth_ok', agentId: agentConn.tokenId });
-    console.log(`✅ Agent authenticated: ${agentConn.tokenId} (user: ${agentConn.userId})`);
+    console.log(`Agent authenticated: ${agentConn.tokenId} (user: ${agentConn.userId})`);
 
     return agentConn;
   }
@@ -263,7 +365,7 @@ export class RelayServer {
     this.sendMessage(ws, { type: 'agent_status', online: agentOnline });
 
     console.log(
-      `✅ Client authenticated: session=${sessionId}, user=${clientConn.userId}, agent=${clientConn.agentId}`
+      `Client authenticated: session=${sessionId}, user=${clientConn.userId}, agent=${clientConn.agentId}`
     );
 
     return clientConn;
@@ -303,7 +405,9 @@ export class RelayServer {
     }
 
     // Check nonce for replay protection
-    if (usedNonces.has(message.nonce)) {
+    const now = Date.now();
+    const existingTimestamp = usedNonces.get(message.nonce);
+    if (existingTimestamp !== undefined && now - existingTimestamp < NONCE_VALIDITY_MS) {
       this.sendError(conn.ws, 'Duplicate nonce (replay attack?)');
       return;
     }
@@ -322,8 +426,8 @@ export class RelayServer {
       return;
     }
 
-    // Mark nonce as used
-    usedNonces.add(message.nonce);
+    // Mark nonce as used with timestamp
+    usedNonces.set(message.nonce, now);
 
     // Route to client
     this.routeToClient(conn.userId, message.sessionId, {
@@ -390,7 +494,7 @@ export class RelayServer {
     }
 
     // Add sessionId to message for agent routing
-    const agentMessage = { ...message, sessionId };
+    const agentMessage: RelayOutgoingMessage = { ...message, sessionId };
     this.sendMessage(agent.ws, agentMessage);
   }
 
@@ -432,7 +536,7 @@ export class RelayServer {
     updateAgentConnectionStatus(conn.userId, conn.tokenId, false);
     this.notifyClientsOfAgentStatus(conn.userId, conn.tokenId, false);
 
-    console.log(`🔴 Agent disconnected: ${conn.tokenId} (user: ${conn.userId})`);
+    console.log(`Agent disconnected: ${conn.tokenId} (user: ${conn.userId})`);
   }
 
   /**
@@ -447,7 +551,7 @@ export class RelayServer {
       }
     }
 
-    console.log(`🔴 Client disconnected: session=${conn.sessionId}, user=${conn.userId}`);
+    console.log(`Client disconnected: session=${conn.sessionId}, user=${conn.userId}`);
   }
 
   /**
@@ -479,7 +583,7 @@ export class RelayServer {
   /**
    * Send message to WebSocket
    */
-  private sendMessage(ws: WebSocket, message: any): void {
+  private sendMessage(ws: WebSocket, message: RelayOutgoingMessage): void {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(message));
     }
@@ -504,7 +608,7 @@ export class RelayServer {
    */
   private setConnectionTimeout(ws: WebSocket): void {
     const timeout = setTimeout(() => {
-      console.log('⏱️  Connection timeout - closing');
+      console.log('Connection timeout - closing');
       ws.close();
     }, CONNECTION_TIMEOUT_MS);
 
