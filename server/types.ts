@@ -91,12 +91,17 @@ export interface PongMessage {
   type: 'pong';
 }
 
-export type RelayOutgoingMessage = 
-  | AuthOkMessage 
-  | AuthErrorMessage 
-  | RelayMessage 
-  | AgentStatusMessage 
-  | ErrorMessage 
+export interface RelayMessageWithSession extends RelayMessage {
+  sessionId: string;
+}
+
+export type RelayOutgoingMessage =
+  | AuthOkMessage
+  | AuthErrorMessage
+  | RelayMessage
+  | RelayMessageWithSession
+  | AgentStatusMessage
+  | ErrorMessage
   | PongMessage;
 
 // Database types

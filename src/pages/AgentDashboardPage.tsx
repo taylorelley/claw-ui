@@ -1,14 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Bot, Plus, Search, Wifi, WifiOff, Trash2, AlertCircle, 
-  Activity, Calendar, CheckCircle2, X 
+import {
+  Bot, Plus, Search, Wifi, WifiOff, Trash2, AlertCircle,
+  Activity, Calendar, CheckCircle2, X
 } from 'lucide-react';
-import { 
-  listAgentTokens, 
-  revokeAgentToken, 
-  getAgentStatus, 
-  AgentToken 
+import {
+  listAgentTokens,
+  revokeAgentToken,
+  getAgentStatus,
+  AgentToken
 } from '../services/agentTokenService';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { EmptyState } from '../components/common/EmptyState';
@@ -28,26 +28,16 @@ interface ConnectionEvent {
 export function AgentDashboardPage() {
   const navigate = useNavigate();
   const { success, error: showError } = useToast();
-  
+
   const [agents, setAgents] = useState<AgentWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAgents, setSelectedAgents] = useState<Set<string>>(new Set());
   const [selectedAgent, setSelectedAgent] = useState<AgentWithStatus | null>(null);
+  const [showBulkRevokeConfirm, setShowBulkRevokeConfirm] = useState(false);
   const agentsRef = useRef<AgentWithStatus[]>(agents);
 
-  useEffect(() => {
-    loadAgents();
-
-    // Poll for status updates every 10 seconds
-    const interval = setInterval(() => {
-      updateAgentStatuses();
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const loadAgents = async () => {
+  const loadAgents = useCallback(async () => {
     setLoading(true);
 
     try {
@@ -72,9 +62,9 @@ export function AgentDashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showError]);
 
-  const updateAgentStatuses = async () => {
+  const updateAgentStatuses = useCallback(async () => {
     const currentAgents = agentsRef.current;
     if (currentAgents.length === 0) return;
 
@@ -91,7 +81,18 @@ export function AgentDashboardPage() {
     } catch {
       // Status update failed silently; will retry on next interval
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadAgents();
+
+    // Poll for status updates every 10 seconds
+    const interval = setInterval(() => {
+      updateAgentStatuses();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [loadAgents, updateAgentStatuses]);
 
   const handleRevoke = async (id: string) => {
     try {
@@ -111,6 +112,7 @@ export function AgentDashboardPage() {
       );
       success(`Revoked ${selectedAgents.size} agent(s)`);
       setSelectedAgents(new Set());
+      setShowBulkRevokeConfirm(false);
       await loadAgents();
     } catch {
       showError('Failed to revoke agents');
@@ -198,7 +200,7 @@ export function AgentDashboardPage() {
               className="w-full pl-9 pr-4 py-2 rounded-lg border border-border bg-surface-1 text-foreground placeholder:text-foreground-muted focus:outline-none focus:border-accent transition-colors"
             />
           </div>
-          
+
           <button
             onClick={() => navigate('/setup')}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground hover:bg-accent-hover font-medium transition-all"
@@ -209,7 +211,7 @@ export function AgentDashboardPage() {
 
           {selectedAgents.size > 0 && (
             <button
-              onClick={handleBulkRevoke}
+              onClick={() => setShowBulkRevokeConfirm(true)}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-error text-white hover:bg-error/90 font-medium transition-all"
             >
               <Trash2 size={16} />
@@ -247,6 +249,44 @@ export function AgentDashboardPage() {
           onRevoke={() => handleRevoke(selectedAgent.id)}
         />
       )}
+
+      {/* Bulk Revoke Confirmation Modal */}
+      {showBulkRevokeConfirm && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          tabIndex={-1}
+          onClick={() => setShowBulkRevokeConfirm(false)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setShowBulkRevokeConfirm(false); }}
+        >
+          <div
+            className="bg-surface-0 rounded-2xl border border-border max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="space-y-3">
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-error/10 border border-error/20">
+                <AlertCircle size={16} className="text-error shrink-0 mt-0.5" />
+                <p className="text-sm text-error">
+                  This will permanently revoke {selectedAgents.size} agent(s). This action cannot be undone.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleBulkRevoke}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-error hover:bg-error/90 text-white font-medium transition-colors"
+                >
+                  Confirm Revoke
+                </button>
+                <button
+                  onClick={() => setShowBulkRevokeConfirm(false)}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-surface-2 hover:bg-surface-3 text-foreground font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -264,7 +304,7 @@ function AgentCard({ agent, selected, onToggleSelect, onViewDetails, onTest }: {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    
+
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins}m ago`;
     const diffHours = Math.floor(diffMins / 60);
@@ -286,7 +326,7 @@ function AgentCard({ agent, selected, onToggleSelect, onViewDetails, onTest }: {
           onChange={onToggleSelect}
           className="mt-1 w-4 h-4 rounded border-border accent-accent"
         />
-        
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             {agent.status === 'online' ? (
@@ -297,14 +337,14 @@ function AgentCard({ agent, selected, onToggleSelect, onViewDetails, onTest }: {
             <h3 className="font-semibold text-foreground truncate">{agent.name}</h3>
             <span className={cn(
               'text-xs px-2 py-0.5 rounded-full shrink-0',
-              agent.status === 'online' 
-                ? 'bg-success/10 text-success' 
+              agent.status === 'online'
+                ? 'bg-success/10 text-success'
                 : 'bg-foreground-muted/10 text-foreground-muted'
             )}>
               {agent.status}
             </span>
           </div>
-          
+
           <div className="space-y-1 text-xs text-foreground-muted">
             <div className="flex items-center gap-1.5">
               <Activity size={12} />
@@ -349,8 +389,16 @@ function AgentDetailsModal({ agent, onClose, onRevoke }: {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-surface-0 rounded-2xl border border-border max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      tabIndex={-1}
+      onClick={onClose}
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+    >
+      <div
+        className="bg-surface-0 rounded-2xl border border-border max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="p-6 border-b border-border flex items-center justify-between">
           <div>
@@ -466,13 +514,13 @@ function InfoRow({ label, value, mono }: { label: string; value: string; mono?: 
 function generateMockHistory(): ConnectionEvent[] {
   const events: ConnectionEvent[] = [];
   const now = Date.now();
-  
+
   for (let i = 0; i < 5; i++) {
     events.push({
       timestamp: new Date(now - i * 3600000).toISOString(),
       type: i % 2 === 0 ? 'connected' : 'disconnected',
     });
   }
-  
+
   return events;
 }

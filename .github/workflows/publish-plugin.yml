@@ -34,11 +34,12 @@ jobs:
       - name: Update version from release tag
         if: github.event_name == 'release'
         working-directory: ./plugin
+        env:
+          VERSION: ${{ github.event.release.tag_name }}
         run: |
-          VERSION="${{ github.event.release.tag_name }}"
           # Remove 'v' prefix if present
           VERSION="${VERSION#v}"
-          npm version $VERSION --no-git-tag-version --allow-same-version
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
 
       - name: Update version from input
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''

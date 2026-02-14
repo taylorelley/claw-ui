@@ -9,7 +9,7 @@ WHAT WAS COMPLETED
 ================================================================================
 
 1. ✅ Database Migration File Created
-   Location: /tmp/claw-ui/supabase/migrations/002_multi_tenant.sql
+   Location: supabase/migrations/20260212101500_multi_tenant.sql
    Size: 14KB
    - agent_tokens table (for OpenClaw plugin pairing)
    - user_id columns added to all tables
@@ -18,7 +18,7 @@ WHAT WAS COMPLETED
    - Agent limit trigger (max 10 per user)
 
 2. ✅ Registration Page Implemented
-   Location: /tmp/claw-ui/src/pages/RegisterPage.tsx
+   Location: src/pages/RegisterPage.tsx
    Size: 8KB
    Features:
    - Email + password registration
@@ -30,8 +30,8 @@ WHAT WAS COMPLETED
 
 3. ✅ Auth Flow Updated
    Modified:
-   - /tmp/claw-ui/src/App.tsx (added /register route)
-   - /tmp/claw-ui/src/pages/LoginPage.tsx (added register link)
+   - src/App.tsx (added /register route)
+   - src/pages/LoginPage.tsx (added register link)
 
 4. ✅ Build Passes
    Command: npm run build
@@ -51,16 +51,16 @@ WHAT NEEDS TO BE DONE (MANUAL STEPS)
 Option 1 - Via Supabase Studio (RECOMMENDED):
    1. Navigate to: https://supabasekong-skgkk080c44ow08gco8c08og.app.taylorelley.com
    2. Go to SQL Editor
-   3. Copy contents of: /tmp/claw-ui/supabase/migrations/002_multi_tenant.sql
+   3. Copy contents of: supabase/migrations/20260212101500_multi_tenant.sql
    4. Paste and execute
    5. Verify with: SELECT * FROM agent_tokens LIMIT 1;
 
 Option 2 - Via Docker Exec:
    docker exec -i $(docker ps --filter "label=coolify.serviceName=supabase-db" --format "{{.Names}}" | head -1) \
-     psql -U postgres -d postgres < /tmp/claw-ui/supabase/migrations/002_multi_tenant.sql
+     psql -U postgres -d postgres < supabase/migrations/20260212101500_multi_tenant.sql
 
 Option 3 - Via psql:
-   psql -h <host> -U postgres -d postgres -f /tmp/claw-ui/supabase/migrations/002_multi_tenant.sql
+   psql -h <host> -U postgres -d postgres -f supabase/migrations/20260212101500_multi_tenant.sql
 
 Database Credentials (from Coolify):
    Host: supabase-db
@@ -119,16 +119,16 @@ FILES CREATED/MODIFIED
 ================================================================================
 
 NEW FILES:
-   /tmp/claw-ui/supabase/migrations/002_multi_tenant.sql
-   /tmp/claw-ui/src/pages/RegisterPage.tsx
-   /tmp/claw-ui/MIGRATION_GUIDE.md
-   /tmp/claw-ui/check-migration-status.js
-   /tmp/claw-ui/PHASE1_SUMMARY.md
-   /tmp/claw-ui/PHASE1_COMPLETION_REPORT.txt
+   supabase/migrations/20260212101500_multi_tenant.sql
+   src/pages/RegisterPage.tsx
+   MIGRATION_GUIDE.md
+   check-migration-status.js
+   PHASE1_SUMMARY.md
+   PHASE1_COMPLETION_REPORT.txt
 
 MODIFIED FILES:
-   /tmp/claw-ui/src/App.tsx
-   /tmp/claw-ui/src/pages/LoginPage.tsx
+   src/App.tsx
+   src/pages/LoginPage.tsx
 
 ================================================================================
 ISSUES ENCOUNTERED
@@ -171,7 +171,7 @@ Check user_id columns exist:
    SELECT column_name FROM information_schema.columns WHERE table_name = 'agent_connections' AND column_name = 'user_id';
 
 Or run the automated check:
-   node /tmp/claw-ui/check-migration-status.js
+   node check-migration-status.js
 
 ================================================================================
 DOCUMENTATION

@@ -1,6 +1,6 @@
 /**
  * CloudClient - WebSocket client for claw-ui relay server
- * 
+ *
  * Handles:
  * - Connection to relay server
  * - HMAC-SHA256 authentication
@@ -43,6 +43,7 @@ export class CloudClient {
   private connected = false;
   private authenticated = false;
   private shouldReconnect = true;
+  private intentionallyDisconnected = false;
 
   constructor(config: CloudClientConfig) {
     this.config = config;
@@ -54,16 +55,18 @@ export class CloudClient {
   async connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       const { relayUrl } = this.config;
-      
+      let settled = false;
+
       console.log(`[claw-ui] Connecting to relay: ${relayUrl}`);
-      
+
       try {
         this.ws = new WebSocket(relayUrl, {
           rejectUnauthorized: true,
         });
 
         const authTimeout = setTimeout(() => {
-          if (!this.authenticated) {
+          if (!settled) {
+            settled = true;
             reject(new Error("Authentication timeout"));
             this.ws?.close();
           }
@@ -78,10 +81,12 @@ export class CloudClient {
 
         this.ws.on("message", (data) => {
           const result = this.handleMessage(data);
-          if (result === "auth_success") {
+          if (result === "auth_success" && !settled) {
+            settled = true;
             clearTimeout(authTimeout);
             resolve();
-          } else if (result === "auth_error") {
+          } else if (result === "auth_error" && !settled) {
+            settled = true;
             clearTimeout(authTimeout);
             reject(new Error("Authentication failed"));
           }
@@ -89,7 +94,8 @@ export class CloudClient {
 
         this.ws.on("error", (err) => {
           console.error(`[claw-ui] WebSocket error: ${err.message}`);
-          if (!this.connected) {
+          if (!settled) {
+            settled = true;
             clearTimeout(authTimeout);
             reject(err);
           }
@@ -99,13 +105,21 @@ export class CloudClient {
           console.log(`[claw-ui] Disconnected (code: ${code}, reason: ${reason.toString()})`);
           this.connected = false;
           this.authenticated = false;
-          if (this.shouldReconnect) {
+          if (!settled) {
+            settled = true;
+            clearTimeout(authTimeout);
+            reject(new Error(`WebSocket closed before auth (code: ${code})`));
+          }
+          if (this.shouldReconnect && !this.intentionallyDisconnected) {
             this.scheduleReconnect();
           }
         });
-        
+
       } catch (err) {
-        reject(err);
+        if (!settled) {
+          settled = true;
+          reject(err);
+        }
       }
     });
   }
@@ -115,6 +129,7 @@ export class CloudClient {
    */
   disconnect(): void {
     this.shouldReconnect = false;
+    this.intentionallyDisconnected = true;
     if (this.ws) {
       this.ws.close(1000, "Client disconnecting");
       this.ws = null;
@@ -137,7 +152,7 @@ export class CloudClient {
     const { tokenId, tokenSecret } = this.config;
     const timestamp = Date.now().toString();
     const nonce = crypto.randomBytes(16).toString("hex");
-    
+
     // HMAC signature: sign "tokenId:timestamp:nonce" with secret
     const message = `${tokenId}:${timestamp}:${nonce}`;
     const signature = crypto
@@ -161,30 +176,30 @@ export class CloudClient {
   private handleMessage(data: WebSocket.Data): string | void {
     try {
       const message = JSON.parse(data.toString()) as RelayMessage;
-      
+
       switch (message.type) {
         case "auth_success":
           console.log("[claw-ui] Authenticated with relay");
           this.authenticated = true;
           return "auth_success";
-          
+
         case "auth_error":
           console.error(`[claw-ui] Authentication failed: ${message.error}`);
           this.disconnect();
           return "auth_error";
-          
+
         case "message":
           this.handleInboundMessage(message);
           break;
-          
+
         case "ping":
           this.send({ type: "pong" });
           break;
-          
+
         case "error":
           console.error(`[claw-ui] Relay error: ${message.error}`);
           break;
-          
+
         default:
           console.log(`[claw-ui] Unknown message type: ${message.type}`);
       }
@@ -199,14 +214,24 @@ export class CloudClient {
   private async handleInboundMessage(message: RelayMessage): Promise<void> {
     const senderId = message.senderId as string;
     const content = message.content;
-    
+
     console.log(`[claw-ui] Inbound message from ${senderId}`);
-    
+
     if (this.config.onMessage) {
       try {
         await this.config.onMessage(senderId, content);
       } catch (err) {
         console.error(`[claw-ui] Error handling inbound message: ${err}`);
+      }
+    }
+
+    // Forward to runtime if available
+    const runtime = this.config.runtime;
+    if (runtime && typeof (runtime as Record<string, unknown>).handleInboundMessage === "function") {
+      try {
+        await ((runtime as Record<string, Function>).handleInboundMessage(senderId, this.config.accountId, content));
+      } catch (err) {
+        console.error(`[claw-ui] Error forwarding to runtime: ${err}`);
       }
     }
   }
@@ -218,7 +243,7 @@ export class CloudClient {
     if (!this.authenticated) {
       throw new Error("Not authenticated with relay");
     }
-    
+
     this.send({
       type: "message",
       targetId: clientId,
@@ -228,12 +253,13 @@ export class CloudClient {
 
   /**
    * Send raw message to relay
+   * Throws if WebSocket is not open.
    */
   private send(message: RelayMessage): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message));
     } else {
-      console.warn("[claw-ui] Cannot send - WebSocket not open");
+      throw new Error("WebSocket not open");
     }
   }
 
@@ -245,17 +271,18 @@ export class CloudClient {
       console.error("[claw-ui] Max reconnect attempts reached, giving up");
       return;
     }
-    
+
     const delay = Math.min(
       this.reconnectDelay * Math.pow(2, this.reconnectAttempts),
       30000 // Max 30 seconds
     );
-    
+
     this.reconnectAttempts++;
+    this.intentionallyDisconnected = false;
     console.log(`[claw-ui] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-    
+
     setTimeout(() => {
-      if (this.shouldReconnect) {
+      if (this.shouldReconnect && !this.intentionallyDisconnected) {
         this.connect().catch((err) => {
           console.error(`[claw-ui] Reconnect failed: ${err.message}`);
         });
