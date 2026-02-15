@@ -53,6 +53,13 @@ export class CloudClient {
    * Connect to the relay server
    */
   async connect(): Promise<void> {
+    // Clean up any existing socket before creating a new one
+    if (this.ws) {
+      this.ws.removeAllListeners();
+      this.ws.close();
+      this.ws = null;
+    }
+
     return new Promise((resolve, reject) => {
       const { relayUrl } = this.config;
       let settled = false;
