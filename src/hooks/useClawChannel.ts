@@ -24,7 +24,7 @@ interface OutgoingMessage {
   token?: string;
   content?: string;
   method?: string;
-  params?: any;
+  params?: Record<string, unknown>;
   agentId?: string;
 }
 
@@ -172,7 +172,7 @@ export function useClawChannel({
               onMessageRef.current?.(event.data);
             }
         }
-      } catch (error) {
+      } catch {
         // Not JSON, treat as plain text
         if (typeof event.data === 'string') {
           onMessageRef.current?.(event.data);

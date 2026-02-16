@@ -348,7 +348,7 @@ const gatewayAdapter: ChannelGatewayAdapter<ResolvedClawUIAccount> = {
         // Forward inbound messages through OpenClaw's standard flow
         if (pluginRuntime && typeof (pluginRuntime as Record<string, unknown>).handleInboundMessage === "function") {
           try {
-            await ((pluginRuntime as Record<string, Function>).handleInboundMessage(senderId, accountId, message));
+            await ((pluginRuntime as Record<string, (...args: unknown[]) => unknown>).handleInboundMessage(senderId, accountId, message));
           } catch (err) {
             log?.error?.(`[${accountId}] error forwarding inbound message: ${err}`);
           }
