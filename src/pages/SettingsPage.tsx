@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { DEFAULT_PREFERENCES } from '../lib/types';
 import type { ThemeMode, LayoutDensity } from '../lib/types';
 import { cn } from '../lib/cn';
-import { listAgentTokenListItems, AgentTokenListItemListItem } from '../services/agentTokenService';
+import { listAgentTokens, type AgentTokenListItem } from '../services/agentTokenService';
 import { useToast } from '../components/common/Toast';
 
 export function SettingsPage() {
@@ -24,27 +24,25 @@ export function SettingsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
-    loadAgents();
-  }, []);
-
-  const loadAgents = async () => {
-    try {
-      const tokens = await listAgentTokenListItems();
+    let cancelled = false;
+    listAgentTokens().then((tokens) => {
+      if (cancelled) return;
       setAgents(tokens);
-      if (tokens.length > 0 && !defaultAgent) {
-        setDefaultAgent(tokens[0].id);
+      if (tokens.length > 0) {
+        setDefaultAgent(prev => prev || tokens[0].id);
       }
-    } catch (err) {
+    }).catch((err) => {
       console.error('Failed to load agents:', err);
-    }
-  };
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   const handleDeleteAccount = async () => {
     try {
       // TODO: Implement account deletion
       success('Account deletion requested');
       setTimeout(() => signOut(), 2000);
-    } catch (err) {
+    } catch {
       showError('Failed to delete account');
     }
   };

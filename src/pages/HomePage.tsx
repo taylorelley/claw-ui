@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Plus, MessageSquare, Bot, Settings, ArrowRight, Clock, type LucideIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useSession } from '../hooks/useSession';
-import { listAgentTokenListItems, getAgentStatus, AgentTokenListItemListItem } from '../services/agentTokenService';
+import { listAgentTokens, getAgentStatus, type AgentTokenListItem } from '../services/agentTokenService';
 import { cn } from '../lib/cn';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 
@@ -22,7 +22,7 @@ export function HomePage() {
 
   const loadAgents = async () => {
     try {
-      const tokens = await listAgentTokenListItems();
+      const tokens = await listAgentTokens();
       setAgents(tokens);
       
       // Load statuses
