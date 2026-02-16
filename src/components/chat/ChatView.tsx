@@ -9,7 +9,6 @@ import { useSession } from '../../hooks/useSession';
 import { useClawChannel } from '../../hooks/useClawChannel';
 import { useAdaptiveEngine } from '../../hooks/useAdaptiveEngine';
 import { cn } from '../../lib/cn';
-import type { A2UIMessage } from '../../lib/types';
 
 export function ChatView() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -18,7 +17,7 @@ export function ChatView() {
   const {
     messages, loadingMessages, loadMessages, addMessage,
     updateSessionTitle, deleteSession, togglePin,
-    appendToLastAgentMessage, updateLastAgentA2UI,
+    appendToLastAgentMessage,
   } = useSession();
   const { trackEvent, suggestedActions, generateSuggestions } = useAdaptiveEngine();
 
@@ -42,6 +41,11 @@ export function ChatView() {
     authToken: import.meta.env.VITE_CLAW_AUTH_TOKEN,
     onMessage: handleMessage,
   });
+
+  // Stub for A2UI actions (not yet implemented)
+  const sendAction = useCallback((name: string, context: unknown) => {
+    console.log('[A2UI] Action:', name, context);
+  }, []);
 
   useEffect(() => {
     if (sessionId) {

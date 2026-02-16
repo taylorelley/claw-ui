@@ -1,0 +1,12 @@
+{
+  "id": "claw-ui",
+  "name": "Claw UI",
+  "version": "1.0.0",
+  "description": "Web chat interface channel for OpenClaw",
+  "channels": ["claw-ui"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
