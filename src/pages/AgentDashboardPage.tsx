@@ -8,14 +8,14 @@ import {
   listAgentTokens,
   revokeAgentToken,
   getAgentStatus,
-  AgentToken
+  AgentTokenListItem
 } from '../services/agentTokenService';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { EmptyState } from '../components/common/EmptyState';
 import { useToast } from '../components/common/Toast';
 import { cn } from '../lib/cn';
 
-interface AgentWithStatus extends AgentToken {
+interface AgentWithStatus extends AgentTokenListItem {
   status: 'online' | 'offline';
   connectionHistory?: ConnectionEvent[];
 }

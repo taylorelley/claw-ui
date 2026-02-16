@@ -10,7 +10,6 @@
 
 import WebSocket from "ws";
 import crypto from "crypto";
-import type { PluginRuntime } from "openclaw/plugin-sdk";
 
 // ============================================================================
 // Types
@@ -21,7 +20,6 @@ interface CloudClientConfig {
   tokenId: string;
   tokenSecret: string;
   accountId: string;
-  runtime: PluginRuntime;
   onMessage?: (senderId: string, message: unknown) => Promise<void>;
 }
 
@@ -229,16 +227,6 @@ export class CloudClient {
         await this.config.onMessage(senderId, content);
       } catch (err) {
         console.error(`[claw-ui] Error handling inbound message: ${err}`);
-      }
-    }
-
-    // Forward to runtime if available
-    const runtime = this.config.runtime;
-    if (runtime && typeof (runtime as Record<string, unknown>).handleInboundMessage === "function") {
-      try {
-        await ((runtime as Record<string, Function>).handleInboundMessage(senderId, this.config.accountId, content));
-      } catch (err) {
-        console.error(`[claw-ui] Error forwarding to runtime: ${err}`);
       }
     }
   }

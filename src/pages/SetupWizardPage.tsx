@@ -273,7 +273,7 @@ export function SetupWizardPage() {
           </div>
         );
 
-      case 'configure':
+      case 'configure': {
         const agentPrompt = `Install and configure the claw-ui plugin for me with these settings:
 
 - Token ID: ${tokenId}
@@ -422,6 +422,7 @@ channels:
             </div>
           </div>
         );
+      }
 
       case 'verify':
         return (

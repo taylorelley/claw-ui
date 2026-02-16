@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Plus, MessageSquare, Bot, Settings, ArrowRight, Clock, type LucideIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useSession } from '../hooks/useSession';
-import { listAgentTokens, getAgentStatus, AgentToken } from '../services/agentTokenService';
+import { listAgentTokenListItems, getAgentStatus, AgentTokenListItemListItem } from '../services/agentTokenService';
 import { cn } from '../lib/cn';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 
@@ -12,7 +12,7 @@ export function HomePage() {
   const { createSession } = useSession();
   const navigate = useNavigate();
   
-  const [agents, setAgents] = useState<AgentToken[]>([]);
+  const [agents, setAgents] = useState<AgentTokenListItem[]>([]);
   const [agentStatuses, setAgentStatuses] = useState<Record<string, 'online' | 'offline'>>({});
   const [loading, setLoading] = useState(true);
 
@@ -22,7 +22,7 @@ export function HomePage() {
 
   const loadAgents = async () => {
     try {
-      const tokens = await listAgentTokens();
+      const tokens = await listAgentTokenListItems();
       setAgents(tokens);
       
       // Load statuses
@@ -334,7 +334,7 @@ function SessionCard({ session, onClick }: {
   );
 }
 
-function AgentStatusCard({ agent }: { agent: AgentToken }) {
+function AgentStatusCard({ agent }: { agent: AgentTokenListItem }) {
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return 'Never';
     const date = new Date(dateStr);

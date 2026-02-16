@@ -9,6 +9,20 @@ export interface AgentToken {
   token_secret: string;
   created_at: string;
   last_used_at: string | null;
+  last_connected_at: string | null;
+  revoked_at: string | null;
+  expires_at: string | null;
+}
+
+/** Token fields safe to return to the client (excludes token_secret) */
+export interface AgentTokenListItem {
+  id: string;
+  token_id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
+  last_used_at: string | null;
+  last_connected_at: string | null;
   revoked_at: string | null;
   expires_at: string | null;
 }
@@ -63,12 +77,12 @@ export async function createAgentToken(name: string): Promise<CreateTokenResult>
 
 /**
  * List all agent tokens for the current user
- * @returns Array of agent tokens (without hashes)
+ * @returns Array of agent tokens (excludes token_secret)
  */
-export async function listAgentTokens(): Promise<AgentToken[]> {
+export async function listAgentTokens(): Promise<AgentTokenListItem[]> {
   const { data, error } = await supabase
     .from('agent_tokens')
-    .select('*')
+    .select('id, token_id, user_id, name, created_at, last_used_at, last_connected_at, revoked_at, expires_at')
     .is('revoked_at', null)
     .order('created_at', { ascending: false });
 
