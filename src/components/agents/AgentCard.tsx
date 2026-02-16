@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Trash2, AlertCircle } from 'lucide-react';
-import { AgentToken } from '../../services/agentTokenService';
+import { AgentTokenListItem } from '../../services/agentTokenService';
 
 interface AgentCardProps {
-  token: AgentToken;
+  token: AgentTokenListItem;
   status: 'online' | 'offline';
   onRevoke: (id: string) => Promise<void>;
 }

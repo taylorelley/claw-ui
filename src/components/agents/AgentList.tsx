@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { Loader2, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AgentCard } from './AgentCard';
-import { listAgentTokens, revokeAgentToken, getAgentStatus, AgentToken } from '../../services/agentTokenService';
+import { listAgentTokenListItems, revokeAgentTokenListItem, getAgentStatus, AgentTokenListItemListItem } from '../../services/agentTokenService';
 
 export function AgentList() {
   const navigate = useNavigate();
-  const [tokens, setTokens] = useState<AgentToken[]>([]);
+  const [tokens, setTokens] = useState<AgentTokenListItem[]>([]);
   const [statuses, setStatuses] = useState<Record<string, 'online' | 'offline'>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +20,7 @@ export function AgentList() {
     setError(null);
     
     try {
-      const data = await listAgentTokens();
+      const data = await listAgentTokenListItems();
       setTokens(data);
       
       // Load status for each token
@@ -45,7 +45,7 @@ export function AgentList() {
   };
 
   const handleRevoke = async (id: string) => {
-    await revokeAgentToken(id);
+    await revokeAgentTokenListItem(id);
     await loadTokens(); // Reload list
   };
 

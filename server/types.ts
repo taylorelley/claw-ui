@@ -24,6 +24,7 @@ export interface AgentAuthMessage {
   type: 'auth';
   tokenId: string;
   signature: string;
+  timestamp: number;
 }
 
 export interface AgentMessage {
@@ -107,12 +108,15 @@ export type RelayOutgoingMessage =
 // Database types
 export interface AgentToken {
   id: string;
+  token_id: string;
   user_id: string;
   name: string;
   token_secret: string;
-  last_used_at: string | null;
-  expires_at: string | null;
   created_at: string;
+  last_used_at: string | null;
+  last_connected_at: string | null;
+  expires_at: string | null;
+  revoked_at: string | null;
 }
 
 // Rate limiting

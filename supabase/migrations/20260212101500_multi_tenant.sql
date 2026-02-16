@@ -8,20 +8,22 @@ CREATE TABLE IF NOT EXISTS agent_tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
-  token_hash TEXT NOT NULL,
+  token_id TEXT NOT NULL,
+  token_secret TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
-  last_connected_at TIMESTAMPTZ,
+  last_used_at TIMESTAMPTZ,
+  expires_at TIMESTAMPTZ,
   revoked_at TIMESTAMPTZ
 );
 
 -- Unique constraint only for active (non-revoked) tokens
 -- This allows reusing names from revoked agents
-CREATE UNIQUE INDEX IF NOT EXISTS agent_tokens_active_name_unique 
-ON agent_tokens(user_id, name) 
+CREATE UNIQUE INDEX IF NOT EXISTS agent_tokens_active_name_unique
+ON agent_tokens(user_id, name)
 WHERE revoked_at IS NULL;
 
 CREATE INDEX IF NOT EXISTS idx_agent_tokens_user_id ON agent_tokens(user_id);
-CREATE INDEX IF NOT EXISTS idx_agent_tokens_hash ON agent_tokens(token_hash) WHERE revoked_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_agent_tokens_token_id ON agent_tokens(token_id) WHERE revoked_at IS NULL;
 
 ALTER TABLE agent_tokens ENABLE ROW LEVEL SECURITY;
 
@@ -31,11 +33,32 @@ CREATE POLICY "Users can update their own agent tokens" ON agent_tokens FOR UPDA
 CREATE POLICY "Users can delete their own agent tokens" ON agent_tokens FOR DELETE USING (auth.uid() = user_id);
 CREATE POLICY "Deny anon access to agent_tokens" ON agent_tokens FOR ALL TO anon USING (false) WITH CHECK (false);
 
--- 2. ADD USER_ID COLUMNS TO EXISTING TABLES
+-- 2. ADD USER_ID COLUMNS TO EXISTING TABLES (nullable first for backfill)
 ALTER TABLE agent_connections ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
 ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
 ALTER TABLE shortcuts ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+
+-- 2b. BACKFILL: assign existing rows to the first auth user (single-user migration)
+-- If no auth user exists, rows remain NULL and will be inaccessible under RLS
+DO $$
+DECLARE
+  first_user_id UUID;
+BEGIN
+  SELECT id INTO first_user_id FROM auth.users LIMIT 1;
+  IF first_user_id IS NOT NULL THEN
+    UPDATE agent_connections SET user_id = first_user_id WHERE user_id IS NULL;
+    UPDATE sessions SET user_id = first_user_id WHERE user_id IS NULL;
+    UPDATE user_preferences SET user_id = first_user_id WHERE user_id IS NULL;
+    UPDATE shortcuts SET user_id = first_user_id WHERE user_id IS NULL;
+  END IF;
+END $$;
+
+-- 2c. ENFORCE NOT NULL after backfill
+ALTER TABLE agent_connections ALTER COLUMN user_id SET NOT NULL;
+ALTER TABLE sessions ALTER COLUMN user_id SET NOT NULL;
+ALTER TABLE user_preferences ALTER COLUMN user_id SET NOT NULL;
+ALTER TABLE shortcuts ALTER COLUMN user_id SET NOT NULL;
 
 -- 3. CREATE INDEXES
 CREATE INDEX IF NOT EXISTS idx_agent_connections_user_id ON agent_connections(user_id);

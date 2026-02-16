@@ -225,7 +225,7 @@ const configAdapter: ChannelConfigAdapter<ResolvedClawUIAccount> = {
 // ============================================================================
 
 const securityAdapter: ChannelSecurityAdapter<ResolvedClawUIAccount> = {
-  resolveDmPolicy: ({ account: _account }) => ({
+  resolveDmPolicy: () => ({
     policy: "open" as const, // Web UI handles its own auth via tokens
     configPath: `channels.claw-ui`,
   }),
@@ -292,7 +292,7 @@ const statusAdapter: ChannelStatusAdapter<ResolvedClawUIAccount, unknown, unknow
     accountId: account.accountId,
     name: account.name,
     enabled: account.enabled,
-    configured: Boolean(account.config.tokenId) || account.config.mode === "local",
+    configured: account.config.mode === "local" || Boolean(account.config.tokenId && account.config.tokenSecret),
     tokenSource: account.tokenSource,
     running: (runtime as ClawUIAccountState)?.running ?? false,
     mode: account.config.mode ?? "cloud",
@@ -343,13 +343,12 @@ const gatewayAdapter: ChannelGatewayAdapter<ResolvedClawUIAccount> = {
       tokenId,
       tokenSecret,
       accountId,
-      runtime: pluginRuntime,
-      onMessage: async (senderId, _message) => {
+      onMessage: async (senderId, message) => {
         log?.debug?.(`[${accountId}] received message from ${senderId}`);
         // Forward inbound messages through OpenClaw's standard flow
         if (pluginRuntime && typeof (pluginRuntime as Record<string, unknown>).handleInboundMessage === "function") {
           try {
-            await ((pluginRuntime as Record<string, Function>).handleInboundMessage(senderId, accountId, _message));
+            await ((pluginRuntime as Record<string, Function>).handleInboundMessage(senderId, accountId, message));
           } catch (err) {
             log?.error?.(`[${accountId}] error forwarding inbound message: ${err}`);
           }

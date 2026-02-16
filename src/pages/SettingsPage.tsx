@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { DEFAULT_PREFERENCES } from '../lib/types';
 import type { ThemeMode, LayoutDensity } from '../lib/types';
 import { cn } from '../lib/cn';
-import { listAgentTokens, AgentToken } from '../services/agentTokenService';
+import { listAgentTokenListItems, AgentTokenListItemListItem } from '../services/agentTokenService';
 import { useToast } from '../components/common/Toast';
 
 export function SettingsPage() {
@@ -14,7 +14,7 @@ export function SettingsPage() {
   const { success, error: showError } = useToast();
   const prefs = state.preferences;
 
-  const [agents, setAgents] = useState<AgentToken[]>([]);
+  const [agents, setAgents] = useState<AgentTokenListItem[]>([]);
   const [defaultAgent, setDefaultAgent] = useState<string>('');
   const [notifications, setNotifications] = useState({
     agentStatus: true,
@@ -29,7 +29,7 @@ export function SettingsPage() {
 
   const loadAgents = async () => {
     try {
-      const tokens = await listAgentTokens();
+      const tokens = await listAgentTokenListItems();
       setAgents(tokens);
       if (tokens.length > 0 && !defaultAgent) {
         setDefaultAgent(tokens[0].id);

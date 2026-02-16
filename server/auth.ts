@@ -56,21 +56,23 @@ export async function verifyAgentToken(
       return { valid: false, error: 'Token expired' };
     }
 
-    // Verify HMAC signature
+    // Verify HMAC signature using timing-safe comparison
     const expectedSignature = crypto
       .createHmac('sha256', token.token_secret)
       .update(payload)
       .digest('hex');
 
-    if (signature !== expectedSignature) {
+    const sigBuf = Buffer.from(signature, 'hex');
+    const expectedBuf = Buffer.from(expectedSignature, 'hex');
+    if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
       return { valid: false, error: 'Invalid signature' };
     }
 
-    // Update last_used_at
+    // Update last_used_at (match by token_id, not database id)
     await supabase
       .from('agent_tokens')
       .update({ last_used_at: new Date().toISOString() })
-      .eq('id', tokenId);
+      .eq('token_id', tokenId);
 
     return { valid: true, token };
   } catch (error) {
@@ -96,14 +98,16 @@ export function verifyMessageSignature(
     return { valid: false, error: 'Timestamp out of range' };
   }
 
-  // Verify signature
+  // Verify signature using timing-safe comparison
   const payload = `${content}:${nonce}:${timestamp}`;
   const expectedSignature = crypto
     .createHmac('sha256', tokenSecret)
     .update(payload)
     .digest('hex');
 
-  if (signature !== expectedSignature) {
+  const sigBuf = Buffer.from(signature, 'hex');
+  const expectedBuf = Buffer.from(expectedSignature, 'hex');
+  if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
     return { valid: false, error: 'Invalid signature' };
   }
 
@@ -123,8 +127,8 @@ export function verifyClientJWT(token: string): {
   }
 
   try {
-    const decoded = jwt.verify(token, SUPABASE_JWT_SECRET) as any;
-    
+    const decoded = jwt.verify(token, SUPABASE_JWT_SECRET) as jwt.JwtPayload;
+
     if (!decoded.sub) {
       return { valid: false, error: 'Invalid token payload' };
     }

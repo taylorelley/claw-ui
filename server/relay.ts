@@ -52,7 +52,7 @@ function isAgentIncomingMessage(obj: unknown): obj is AgentIncomingMessage {
 
   switch (msg.type) {
     case 'auth':
-      return typeof msg.tokenId === 'string' && typeof msg.signature === 'string';
+      return typeof msg.tokenId === 'string' && typeof msg.signature === 'string' && typeof msg.timestamp === 'number';
     case 'heartbeat':
       return true;
     case 'message':
